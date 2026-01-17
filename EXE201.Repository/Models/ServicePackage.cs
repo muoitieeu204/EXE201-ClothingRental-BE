@@ -1,0 +1,23 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace EXE201.Repository.Models;
+
+public partial class ServicePackage
+{
+    public int ServicePkgId { get; set; }
+
+    public int StudioId { get; set; }
+
+    public string Name { get; set; } = null!;
+
+    public string? Description { get; set; }
+
+    public decimal BasePrice { get; set; }
+
+    public virtual ICollection<ServiceAddon> ServiceAddons { get; set; } = new List<ServiceAddon>();
+
+    public virtual ICollection<ServiceBooking> ServiceBookings { get; set; } = new List<ServiceBooking>();
+
+    public virtual Studio Studio { get; set; } = null!;
+}

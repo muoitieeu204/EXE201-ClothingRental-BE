@@ -1,0 +1,29 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace EXE201.Repository.Models;
+
+public partial class ServiceBooking
+{
+    public int SvcBookingId { get; set; }
+
+    public int UserId { get; set; }
+
+    public int? BookingId { get; set; }
+
+    public int ServicePkgId { get; set; }
+
+    public DateTime? ServiceTime { get; set; }
+
+    public decimal? TotalPrice { get; set; }
+
+    public string? Status { get; set; }
+
+    public virtual Booking? Booking { get; set; }
+
+    public virtual ICollection<ServiceBookingAddon> ServiceBookingAddons { get; set; } = new List<ServiceBookingAddon>();
+
+    public virtual ServicePackage ServicePkg { get; set; } = null!;
+
+    public virtual User User { get; set; } = null!;
+}

@@ -1,0 +1,25 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace EXE201.Repository.Models;
+
+public partial class Review
+{
+    public int ReviewId { get; set; }
+
+    public int OutfitId { get; set; }
+
+    public int UserId { get; set; }
+
+    public int? Rating { get; set; }
+
+    public string? Comment { get; set; }
+
+    public DateTime? CreatedAt { get; set; }
+
+    public virtual Outfit Outfit { get; set; } = null!;
+
+    public virtual ICollection<ReviewImage> ReviewImages { get; set; } = new List<ReviewImage>();
+
+    public virtual User User { get; set; } = null!;
+}

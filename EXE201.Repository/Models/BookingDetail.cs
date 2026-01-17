@@ -1,0 +1,35 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace EXE201.Repository.Models;
+
+public partial class BookingDetail
+{
+    public int DetailId { get; set; }
+
+    public int BookingId { get; set; }
+
+    public int OutfitSizeId { get; set; }
+
+    public int RentalPackageId { get; set; }
+
+    public DateTime? StartTime { get; set; }
+
+    public DateTime? EndTime { get; set; }
+
+    public decimal? UnitPrice { get; set; }
+
+    public decimal? DepositAmount { get; set; }
+
+    public decimal? LateFee { get; set; }
+
+    public decimal? DamageFee { get; set; }
+
+    public string? Status { get; set; }
+
+    public virtual Booking Booking { get; set; } = null!;
+
+    public virtual OutfitSize OutfitSize { get; set; } = null!;
+
+    public virtual RentalPackage RentalPackage { get; set; } = null!;
+}
