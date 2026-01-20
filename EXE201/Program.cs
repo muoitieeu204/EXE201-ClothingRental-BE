@@ -1,6 +1,11 @@
 
+using EXE201.Repository.Implementations;
+using EXE201.Repository.Interfaces;
 using EXE201.Repository.Models;
+using EXE201.Service.Implementation;
+using EXE201.Service.Interface;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EXE201
 {
@@ -20,6 +25,15 @@ namespace EXE201
             //Register connection string 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ClothingRentalDbContext>(option => option.UseSqlServer(connectionString));
+
+            // Mapper
+            builder.Services.AddAutoMapper(typeof(EXE201.Service.Mapper.MappingProfile));
+
+            // Repository
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            // Application services
+            builder.Services.AddScoped<IUserService, UserService>();
 
             var app = builder.Build();
 

@@ -7,13 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EXE201.Repository\EXE201.Repository.csproj" />
+    <PackageReference Include="AutoMapper" Version="12.0.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="Implementation\" />
-    <Folder Include="Interface\" />
+    <ProjectReference Include="..\EXE201.Repository\EXE201.Repository.csproj" />
   </ItemGroup>
 
 </Project>
