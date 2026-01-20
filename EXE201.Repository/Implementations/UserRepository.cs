@@ -18,9 +18,25 @@ namespace EXE201.Repository.Implementations
             _context = context;
         }
 
-        public async Task<IEnumerable<User>> GetAllUserAsync()
+        public override async Task<User?> GetByIdAsync(int id)
         {
-            return await _context.Users.ToListAsync();
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.UserId == id);
+        }
+
+        public async Task<IEnumerable<User>> GetAllUserAsync()
+        { 
+            return await _context.Users
+                .Include(u => u.Role)
+                .ToListAsync();
+        }
+
+        public async Task<User?> GetByEmailAsync(string email)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
         }
     }
 }

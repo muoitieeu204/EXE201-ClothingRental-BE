@@ -7,13 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EXE201.Repository\EXE201.Repository.csproj" />
+    <PackageReference Include="Microsoft.AspNet.Identity.Core" Version="2.2.4" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="8.0.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="Implementation\" />
-    <Folder Include="Interface\" />
+    <ProjectReference Include="..\EXE201.Repository\EXE201.Repository.csproj" />
   </ItemGroup>
 
 </Project>
