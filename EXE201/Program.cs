@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EXE201
 {
@@ -82,6 +83,15 @@ namespace EXE201
             //Register Services
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+
+            // Mapper
+            builder.Services.AddAutoMapper(typeof(EXE201.Service.Mapper.MappingProfile));
+
+            // Repository
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            // Application services
             builder.Services.AddScoped<IUserService, UserService>();
 
             var app = builder.Build();

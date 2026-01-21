@@ -1,80 +1,91 @@
+﻿using AutoMapper;
 using EXE201.Repository.Interfaces;
 using EXE201.Service.DTOs;
+using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.Interface;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EXE201.Service.Implementation
 {
     public class UserService : IUserService
     {
-    private readonly IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _uow;
+        private readonly IMapper Mapper;
 
-        public UserService(IUnitOfWork unitOfWork)
+        public UserService(IUnitOfWork uow, IMapper mapper)
         {
- _unitOfWork = unitOfWork;
-}
+            _uow = uow;
+            Mapper = mapper;
+        }
 
-     public async Task<IEnumerable<UserDTO>> GetAllUsersAsync()
-    {
-  var users = await _unitOfWork.Users.GetAllUserAsync();
-     
-            return users.Select(u => new UserDTO
-            {
-        UserId = u.UserId,
-    Email = u.Email,
-          FullName = u.FullName,
-            PhoneNumber = u.PhoneNumber,
-     AvatarUrl = u.AvatarUrl,
-     RoleId = u.RoleId,
-      RoleName = u.Role?.RoleName,
-              IsActive = u.IsActive,
-     CreatedAt = u.CreatedAt,
-      UpdatedAt = u.UpdatedAt
- }).ToList();
+        // ====== Bộ mới ======
+
+        public async Task<IEnumerable<ListUserDto>> GetAllAsync()
+        {
+            var users = await _uow.Users.GetAllUserAsync();
+            return Mapper.Map<IEnumerable<ListUserDto>>(users);
+        }
+
+        public async Task<UserDetailDto?> GetByIdAsync(int id)
+        {
+            var user = await _uow.Users.GetByIdAsync(id);
+            if (user == null) return null;
+
+            return Mapper.Map<UserDetailDto>(user);
+        }
+
+        public async Task<bool> SoftDeleteAsync(int id)
+        {
+            var user = await _uow.Users.GetByIdAsync(id);
+            if (user == null) return false;
+
+            user.IsActive = false;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _uow.Users.UpdateAsync(user);
+            await _uow.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<UserDetailDto?> UpdateProfileAsync(int id, UpdateUserProfileDto dto)
+        {
+            var user = await _uow.Users.GetByIdAsync(id);
+            if (user == null) return null;
+
+            if (user.IsActive == false) return null;
+
+            // AutoMapper: chỉ update field != null (nếu bạn config như mình nói)
+            Mapper.Map(dto, user);
+
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _uow.Users.UpdateAsync(user);
+            await _uow.SaveChangesAsync();
+
+            return Mapper.Map<UserDetailDto>(user);
+        }
+
+        // ====== Bộ cũ (giữ để khỏi break code cũ) ======
+
+        public async Task<IEnumerable<UserDTO>> GetAllUsersAsync()
+        {
+            var users = await _uow.Users.GetAllUserAsync();
+            return Mapper.Map<IEnumerable<UserDTO>>(users);
         }
 
         public async Task<UserDTO?> GetUserByIdAsync(int userId)
         {
-    var user = await _unitOfWork.Users.GetByIdAsync(userId);
-     if (user == null) return null;
+            var user = await _uow.Users.GetByIdAsync(userId);
+            if (user == null) return null;
 
-            return new UserDTO
-            {
-                UserId = user.UserId,
-      Email = user.Email,
-       FullName = user.FullName,
-      PhoneNumber = user.PhoneNumber,
-     AvatarUrl = user.AvatarUrl,
-    RoleId = user.RoleId,
-        RoleName = user.Role?.RoleName,
-   IsActive = user.IsActive,
-             CreatedAt = user.CreatedAt,
-        UpdatedAt = user.UpdatedAt
-        };
-      }
+            return Mapper.Map<UserDTO>(user);
+        }
 
         public async Task<UserDTO?> GetUserByEmailAsync(string email)
         {
-            var user = await _unitOfWork.Users.GetByEmailAsync(email);
-        if (user == null) return null;
+            var user = await _uow.Users.GetByEmailAsync(email);
+            if (user == null) return null;
 
-   return new UserDTO
-            {
-    UserId = user.UserId,
-            Email = user.Email,
-   FullName = user.FullName,
-                PhoneNumber = user.PhoneNumber,
- AvatarUrl = user.AvatarUrl,
-         RoleId = user.RoleId,
-    RoleName = user.Role?.RoleName,
-     IsActive = user.IsActive,
-        CreatedAt = user.CreatedAt,
-      UpdatedAt = user.UpdatedAt
-            };
+            return Mapper.Map<UserDTO>(user);
         }
     }
 }

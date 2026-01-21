@@ -361,5 +361,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/FR01_Implementation_Summary.md
-/JWT_AUTHENTICATION_GUIDE.md
+
