@@ -1,5 +1,7 @@
-﻿using EXE201.Service.DTOs.UserDTOs;
+﻿using EXE201.Service.DTOs;
+using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +9,7 @@ namespace EXE201.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -57,6 +60,16 @@ namespace EXE201.API.Controllers
             if (!ok) return NotFound(new { message = $"User {id} not found" });
 
             return NoContent(); // hoặc Ok(new { message = "Deactivated" })
+        }
+
+        [HttpGet("email/{email}")]
+        public async Task<ActionResult<UserDTO>> GetUserByEmail(string email)
+        {
+            var user = await _userService.GetUserByEmailAsync(email);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            return Ok(user);
         }
     }
 }
