@@ -18,5 +18,8 @@ namespace EXE201.Service.Interface
         Task<IEnumerable<UserDTO>> GetAllUsersAsync();
         Task<UserDTO?> GetUserByIdAsync(int userId);
         Task<UserDTO?> GetUserByEmailAsync(string email);
+
+        Task<bool> SendChangePasswordOtpAsync(string email);
+        Task<bool> ChangePasswordWithOtpAsync(ChangePasswordWithOtpDto dto);
     }
 }

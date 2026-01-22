@@ -84,6 +84,9 @@ namespace EXE201
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddMemoryCache();
+            builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+            builder.Services.AddScoped<IUserService, UserService>();
 
             // Mapper
             builder.Services.AddAutoMapper(typeof(EXE201.Service.Mapper.MappingProfile));

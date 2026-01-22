@@ -9,7 +9,6 @@ namespace EXE201.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -20,6 +19,7 @@ namespace EXE201.API.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetAll()
         {
             var users = await _userService.GetAllAsync();
@@ -27,6 +27,7 @@ namespace EXE201.API.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Authorize]
         public async Task<IActionResult> GetById(int id)
         {
             if (id <= 0) return BadRequest(new { message = "Id must be greater than 0" });
@@ -39,6 +40,7 @@ namespace EXE201.API.Controllers
 
         // PUT: /api/users/5/profile
         [HttpPut("{id:int}/profile")]
+        [Authorize]
         public async Task<IActionResult> UpdateProfile(int id, [FromBody] UpdateUserProfileDto dto)
         {
             if (id <= 0) return BadRequest(new { message = "Id must be greater than 0" });
@@ -52,6 +54,7 @@ namespace EXE201.API.Controllers
 
         // DELETE: /api/users/5  (soft delete)
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SoftDelete(int id)
         {
             if (id <= 0) return BadRequest(new { message = "Id must be greater than 0" });
@@ -59,7 +62,7 @@ namespace EXE201.API.Controllers
             var ok = await _userService.SoftDeleteAsync(id);
             if (!ok) return NotFound(new { message = $"User {id} not found" });
 
-            return NoContent(); // hoặc Ok(new { message = "Deactivated" })
+            return Ok(new { message = "Deactivated" });
         }
 
         [HttpGet("email/{email}")]
@@ -70,6 +73,62 @@ namespace EXE201.API.Controllers
                 return NotFound(new { message = "User not found" });
 
             return Ok(user);
+        }
+
+        //===============
+        // POST: /api/users/password/otp
+        // Body: { "email": "abc@gmail.com" }
+        [HttpPost("password/otp")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SendChangePasswordOtp([FromBody] SendChangePasswordOtpDto dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Email))
+                return BadRequest(new { message = "Email is required" });
+
+            try
+            {
+                var ok = await _userService.SendChangePasswordOtpAsync(dto.Email);
+
+                // Để demo dễ: trả về message rõ ràng
+                // (Trong production thường trả chung chung để tránh leak user tồn tại hay không)
+                if (!ok) return BadRequest(new { message = "Cannot send OTP (invalid email / user not found / cooldown)" });
+
+                return Ok(new { message = "OTP sent. Check your email." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Server error", detail = ex.Message });
+            }
+        }
+
+        // POST: /api/users/password/change
+        // Body: { "email": "...", "otp": "123456", "newPassword": "...", "confirmPassword": "..." }
+        [HttpPost("password/change")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ChangePasswordWithOtp([FromBody] ChangePasswordWithOtpDto dto)
+        {
+            if (dto == null)
+                return BadRequest(new { message = "Body is required" });
+
+            if (string.IsNullOrWhiteSpace(dto.Email) ||
+                string.IsNullOrWhiteSpace(dto.Otp) ||
+                string.IsNullOrWhiteSpace(dto.NewPassword) ||
+                string.IsNullOrWhiteSpace(dto.ConfirmPassword))
+            {
+                return BadRequest(new { message = "Email, Otp, NewPassword, ConfirmPassword are required" });
+            }
+
+            try
+            {
+                var ok = await _userService.ChangePasswordWithOtpAsync(dto);
+                if (!ok) return BadRequest(new { message = "OTP invalid/expired or password validation failed" });
+
+                return Ok(new { message = "Password changed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Server error", detail = ex.Message });
+            }
         }
     }
 }
