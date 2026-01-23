@@ -20,6 +20,9 @@ namespace EXE201.Service.Interface
         Task<UserDTO?> GetUserByEmailAsync(string email);
 
         Task<bool> SendChangePasswordOtpAsync(string email);
-        Task<bool> ChangePasswordWithOtpAsync(ChangePasswordWithOtpDto dto);
+        Task<bool> ChangePasswordLoggedInAsync(int userId, ChangePasswordNewOnlyDto dto);
+
+        Task<string?> VerifyChangePasswordOtpAsync(string email, string otp);
+        Task<bool> ResetPasswordAfterOtpAsync(ResetPasswordAfterOtpDto dto);
     }
 }

@@ -18,10 +18,22 @@ namespace EXE201.Service.DTOs.UserDTOs
         public string Email { get; set; } = string.Empty;
     }
 
-    public class ChangePasswordWithOtpDto
+    public class ChangePasswordNewOnlyDto
+    {
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    public class VerifyOtpDto
     {
         public string Email { get; set; } = string.Empty;
         public string Otp { get; set; } = string.Empty;
+    }
+
+    public class ResetPasswordAfterOtpDto
+    {
+        public string Email { get; set; } = string.Empty;
+        public string ResetToken { get; set; } = string.Empty; // nhận từ API verify
         public string NewPassword { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
     }

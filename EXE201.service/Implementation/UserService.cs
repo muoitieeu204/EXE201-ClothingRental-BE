@@ -7,6 +7,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
+
 
 namespace EXE201.Service.Implementation
 {
@@ -222,23 +224,160 @@ namespace EXE201.Service.Implementation
 
             var subject = "OTP đổi mật khẩu";
             var body =
-$@"Bạn vừa yêu cầu đổi mật khẩu.
-OTP của bạn là: {otp}
-OTP hết hạn sau {ttlMinutes} phút.
+                $@"Bạn vừa yêu cầu đổi mật khẩu.
+                OTP của bạn là: {otp}
+                OTP hết hạn sau {ttlMinutes} phút.
 
-Nếu không phải bạn, bỏ qua email này.";
+                Nếu không phải bạn, bỏ qua email này.";
 
             await _emailService.SendAsync(email, subject, body);
             return true;
         }
 
-        public async Task<bool> ChangePasswordWithOtpAsync(ChangePasswordWithOtpDto dto)
+        public async Task<bool> ChangePasswordLoggedInAsync(int userId, ChangePasswordNewOnlyDto dto)
+        {
+            if (userId <= 0) return false;
+            if (dto == null) return false;
+
+            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 8) return false;
+            if (dto.NewPassword != dto.ConfirmPassword) return false;
+
+            var user = await _uow.Users.GetByIdAsync(userId);
+            if (user == null) return false;
+            if (user.IsActive == false) return false;
+
+            var newHashed = HashPassword_Identity(user, dto.NewPassword);
+            SetUserPasswordHash(user, newHashed);
+
+            user.UpdatedAt = DateTime.UtcNow;
+            await _uow.Users.UpdateAsync(user);
+            await _uow.SaveChangesAsync();
+            return true;
+        }
+
+        private sealed class ResetTokenCacheItem
+        {
+            public string Email { get; set; } = string.Empty;
+            public DateTime ExpireAtUtc { get; set; }
+        }
+
+        private string ResetKey(string tokenHash) => $"RESET:CHANGE_PASSWORD:{tokenHash}";
+
+        private static string Base64Url(byte[] bytes)
+        {
+            return Convert.ToBase64String(bytes)
+                .Replace("+", "-")
+                .Replace("/", "_")
+                .Replace("=", "");
+        }
+
+        private static string GenerateSecureToken()
+        {
+            var bytes = RandomNumberGenerator.GetBytes(32);
+            return Base64Url(bytes);
+        }
+
+        private string HashResetToken(string resetToken)
+        {
+            // HMAC(resetToken) để lưu cache dạng hash (khỏi lưu plaintext)
+            var secret = Encoding.UTF8.GetBytes(GetOtpSecret());
+            using var hmac = new HMACSHA256(secret);
+
+            var payload = Encoding.UTF8.GetBytes($"RESET|{resetToken}");
+            var hash = hmac.ComputeHash(payload);
+
+            // base64 url-safe cho key cache
+            return Base64Url(hash);
+        }
+
+        private static string GetUserPasswordHash(object userEntity)
+        {
+            var t = userEntity.GetType();
+            var prop = t.GetProperty("PasswordHash") ?? t.GetProperty("Password");
+            if (prop == null || !prop.CanRead)
+                throw new InvalidOperationException("Không tìm thấy PasswordHash hoặc Password để đọc.");
+
+            return prop.GetValue(userEntity)?.ToString() ?? "";
+        }
+
+        private static string HashPassword_Identity(object userEntity, string password)
+        {
+            // Hash kiểu ASP.NET Identity (chuỗi thường bắt đầu AQAAAA...)
+            var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<object>();
+            return hasher.HashPassword(userEntity, password);
+        }
+
+        /// <summary>
+        /// Verify OTP đúng -> trả resetToken (client giữ token này gọi API reset password)
+        /// Sai/expired -> null
+        /// </summary>
+        public Task<string?> VerifyChangePasswordOtpAsync(string email, string otp)
         {
             if (_cache == null)
                 throw new InvalidOperationException("Thiếu IMemoryCache trong DI.");
 
+            email = NormalizeEmail(email);
+            otp = (otp ?? "").Trim();
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp))
+                return Task.FromResult<string?>(null);
+
+            if (!_cache.TryGetValue(OtpKey(email), out OtpCacheItem? item) || item == null)
+                return Task.FromResult<string?>(null);
+
+            if (DateTime.UtcNow > item.ExpireAtUtc)
+            {
+                _cache.Remove(OtpKey(email));
+                return Task.FromResult<string?>(null);
+            }
+
+            if (item.AttemptsLeft <= 0)
+            {
+                _cache.Remove(OtpKey(email));
+                return Task.FromResult<string?>(null);
+            }
+
+            var inputHash = HashOtp(email, otp);
+            if (!FixedTimeEquals(item.OtpHash, inputHash))
+            {
+                item.AttemptsLeft--;
+                _cache.Set(OtpKey(email), item, item.ExpireAtUtc);
+                return Task.FromResult<string?>(null);
+            }
+
+            // OTP đúng -> xoá OTP luôn để khỏi reuse
+            _cache.Remove(OtpKey(email));
+
+            // tạo resetToken 1 lần dùng
+            var resetTtlMinutes = GetIntConfig("Otp:ResetTokenTtlMinutes", 10);
+            var resetToken = GenerateSecureToken();
+            var tokenHash = HashResetToken(resetToken);
+
+            var resetItem = new ResetTokenCacheItem
+            {
+                Email = email,
+                ExpireAtUtc = DateTime.UtcNow.AddMinutes(resetTtlMinutes)
+            };
+
+            _cache.Set(ResetKey(tokenHash), resetItem, resetItem.ExpireAtUtc);
+
+            return Task.FromResult<string?>(resetToken);
+        }
+
+        /// <summary>
+        /// Reset password sau khi đã verify OTP (không cần mật khẩu cũ) nhưng bắt buộc có resetToken.
+        /// </summary>
+        public async Task<bool> ResetPasswordAfterOtpAsync(ResetPasswordAfterOtpDto dto)
+        {
+            if (_cache == null)
+                throw new InvalidOperationException("Thiếu IMemoryCache trong DI.");
+
+            if (dto == null) return false;
+
             var email = NormalizeEmail(dto.Email);
             if (string.IsNullOrWhiteSpace(email)) return false;
+
+            if (string.IsNullOrWhiteSpace(dto.ResetToken)) return false;
 
             if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 8)
                 return false;
@@ -246,42 +385,32 @@ Nếu không phải bạn, bỏ qua email này.";
             if (dto.NewPassword != dto.ConfirmPassword)
                 return false;
 
-            if (!_cache.TryGetValue(OtpKey(email), out OtpCacheItem? item) || item == null)
+            var tokenHash = HashResetToken(dto.ResetToken);
+
+            if (!_cache.TryGetValue(ResetKey(tokenHash), out ResetTokenCacheItem? item) || item == null)
                 return false;
 
             if (DateTime.UtcNow > item.ExpireAtUtc)
             {
-                _cache.Remove(OtpKey(email));
+                _cache.Remove(ResetKey(tokenHash));
                 return false;
             }
 
-            if (item.AttemptsLeft <= 0)
-            {
-                _cache.Remove(OtpKey(email));
-                return false;
-            }
+            // token 1 lần dùng
+            _cache.Remove(ResetKey(tokenHash));
 
-            var inputHash = HashOtp(email, (dto.Otp ?? "").Trim());
-            if (!FixedTimeEquals(item.OtpHash, inputHash))
-            {
-                item.AttemptsLeft--;
-                _cache.Set(OtpKey(email), item, item.ExpireAtUtc);
+            // đảm bảo token đúng email
+            if (!string.Equals(item.Email, email, StringComparison.OrdinalIgnoreCase))
                 return false;
-            }
-
-            // OTP đúng -> remove luôn để khỏi reuse
-            _cache.Remove(OtpKey(email));
 
             var user = await _uow.Users.GetByEmailAsync(email);
             if (user == null) return false;
             if (user.IsActive == false) return false;
 
-            // === QUAN TRỌNG: hash password cho khớp login hiện tại ===
-            var newHashed = HashPassword_Pbkdf2(dto.NewPassword);
+            var newHashed = HashPassword_Identity(user, dto.NewPassword);
             SetUserPasswordHash(user, newHashed);
 
             user.UpdatedAt = DateTime.UtcNow;
-
             await _uow.Users.UpdateAsync(user);
             await _uow.SaveChangesAsync();
             return true;
