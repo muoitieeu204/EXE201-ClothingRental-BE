@@ -239,6 +239,9 @@ namespace EXE201.Service.Implementation
             if (userId <= 0) return false;
             if (dto == null) return false;
 
+            // ✅ bắt buộc mật khẩu hiện tại
+            if (string.IsNullOrWhiteSpace(dto.OldPassword)) return false;
+
             if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 8) return false;
             if (dto.NewPassword != dto.ConfirmPassword) return false;
 
@@ -246,6 +249,26 @@ namespace EXE201.Service.Implementation
             if (user == null) return false;
             if (user.IsActive == false) return false;
 
+            // đọc hash đang lưu
+            var storedHash = GetUserPasswordHash(user);
+
+            // verify mật khẩu hiện tại theo Identity
+            var hasher = new PasswordHasher<object>();
+            PasswordVerificationResult verifyResult;
+
+            try
+            {
+                verifyResult = hasher.VerifyHashedPassword(user, storedHash, dto.OldPassword);
+            }
+            catch (FormatException)
+            {
+                // DB còn lẫn hash kiểu cũ như "123" => coi như sai
+                return false;
+            }
+
+            if (verifyResult == PasswordVerificationResult.Failed) return false;
+
+            // ✅ đổi pass: luôn hash theo Identity để login không crash
             var newHashed = HashPassword_Identity(user, dto.NewPassword);
             SetUserPasswordHash(user, newHashed);
 
@@ -254,6 +277,7 @@ namespace EXE201.Service.Implementation
             await _uow.SaveChangesAsync();
             return true;
         }
+
 
         private sealed class ResetTokenCacheItem
         {

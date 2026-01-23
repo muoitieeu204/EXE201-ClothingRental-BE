@@ -78,7 +78,7 @@ namespace EXE201.API.Controllers
 
 
         // Đổi mật khẩu cho user đã đăng nhập
-        [HttpPut("me/password")]
+        [HttpPut("me/change-password")]
         [Authorize]
         public async Task<IActionResult> ChangeMyPassword([FromBody] ChangePasswordNewOnlyDto dto)
         {
@@ -90,10 +90,11 @@ namespace EXE201.API.Controllers
                 return Unauthorized(new { message = "Invalid token (missing user id)" });
 
             var ok = await _userService.ChangePasswordLoggedInAsync(userId, dto);
-            if (!ok) return BadRequest(new { message = "Password validation failed" });
+            if (!ok) return BadRequest(new { message = "Old password wrong OR validation failed" });
 
             return Ok(new { message = "Password changed successfully" });
         }
+
 
         // ==========================================
         // Gửi mã OTP thay đổi mật khẩu
