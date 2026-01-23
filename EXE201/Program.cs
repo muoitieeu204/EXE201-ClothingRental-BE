@@ -80,22 +80,23 @@ namespace EXE201
 
             builder.Services.AddAuthorization();
 
-            //Register Services
+            // Database Context
+            // Already registered above with connection string
+
+            // Repository Layer
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            // Service Layer
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddMemoryCache();
             builder.Services.AddScoped<IEmailService, SmtpEmailService>();
-            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IWishlistService, WishlistService>();
+            
+            // Caching
+            builder.Services.AddMemoryCache();
 
             // Mapper
             builder.Services.AddAutoMapper(typeof(EXE201.Service.Mapper.MappingProfile));
-
-            // Repository
-            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-            // Application services
-            builder.Services.AddScoped<IUserService, UserService>();
 
             var app = builder.Build();
 
