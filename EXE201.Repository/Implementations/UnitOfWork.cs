@@ -12,7 +12,8 @@ namespace EXE201.Repository.Implementations
     {
         private readonly ClothingRentalDbContext _context;
         private IUserRepository _user;
-        
+        private IWishlistRepository _wishlist;
+
         public UnitOfWork(ClothingRentalDbContext context)
         {
             _context = context;
@@ -20,7 +21,7 @@ namespace EXE201.Repository.Implementations
 
         public IUserRepository Users => _user ??= new UserRepository(_context);
 
-        public IWishlistRepository Wishlists => throw new NotImplementedException();
+        public IWishlistRepository Wishlists => _wishlist ??= new WishlistRepository(_context);
 
         public IStudioRepository Studios => throw new NotImplementedException();
 
