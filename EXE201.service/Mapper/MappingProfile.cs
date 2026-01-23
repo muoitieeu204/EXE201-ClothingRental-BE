@@ -19,7 +19,7 @@ namespace EXE201.Service.Mapper
             CreateMap<User, UserDetailDto>().ReverseMap();
             CreateMap<UpdateUserProfileDto, User>().ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
             CreateMap<User,UserDTO>().ForMember(opt => opt.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
-
+            CreateMap<Wishlist, WishlistDTO>().ReverseMap();
         }
     }
 }
