@@ -5,6 +5,7 @@ using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.DTOs.OutfitSizeDTOs;
+using EXE201.Service.DTOs.OutfitDTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,6 +45,42 @@ namespace EXE201.Service.Mapper
                 .ForMember(dest => dest.OutfitName, opt => opt.MapFrom(src => src.Outfit != null ? src.Outfit.Name : null));
             CreateMap<CreateOutfitSizeDto, OutfitSize>();
             CreateMap<UpdateOutfitSizeDto, OutfitSize>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // OutfitDTOs -> Model.Outfit
+            CreateMap<Outfit, OutfitResponseDto>()
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.CategoryName : null))
+                .ForMember(dest => dest.TotalImages, opt => opt.MapFrom(src => src.OutfitImages != null ? src.OutfitImages.Count : 0))
+                .ForMember(dest => dest.TotalSizes, opt => opt.MapFrom(src => src.OutfitSizes != null ? src.OutfitSizes.Count : 0))
+                .ForMember(dest => dest.AvailableSizes, opt => opt.MapFrom(src =>
+                    src.OutfitSizes != null ? src.OutfitSizes.Count(s => s.StockQuantity > 0) : 0))
+                .ForMember(dest => dest.PrimaryImageUrl, opt => opt.MapFrom(src =>
+                    src.OutfitImages != null && src.OutfitImages.Any()
+                        ? src.OutfitImages.OrderBy(img => img.SortOrder).FirstOrDefault()!.ImageUrl
+                        : null))
+                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src =>
+                    src.Reviews != null && src.Reviews.Any()
+                        ? src.Reviews.Average(r => (double?)r.Rating)
+                        : null))
+                .ForMember(dest => dest.TotalReviews, opt => opt.MapFrom(src => src.Reviews != null ? src.Reviews.Count : 0));
+
+            CreateMap<Outfit, OutfitDetailDto>()
+                .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.CategoryName : null))
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.OutfitImages))
+                .ForMember(dest => dest.Sizes, opt => opt.MapFrom(src => src.OutfitSizes))
+                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src =>
+                    src.Reviews != null && src.Reviews.Any()
+                        ? src.Reviews.Average(r => (double?)r.Rating)
+                        : null))
+                .ForMember(dest => dest.TotalReviews, opt => opt.MapFrom(src => src.Reviews != null ? src.Reviews.Count : 0))
+                .ForMember(dest => dest.Attributes, opt => opt.MapFrom(src => src.OutfitAttribute));
+
+            CreateMap<OutfitImage, OutfitImageInfo>();
+            CreateMap<OutfitSize, OutfitSizeInfo>();
+            CreateMap<OutfitAttribute, OutfitAttributeInfo>();
+
+            CreateMap<CreateOutfitDto, Outfit>();
+            CreateMap<UpdateOutfitDto, Outfit>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // Legacy DTO (keep for backward compatibility if needed)
