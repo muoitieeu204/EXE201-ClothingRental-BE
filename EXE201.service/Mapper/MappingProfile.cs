@@ -4,6 +4,7 @@ using EXE201.Service.DTOs;
 using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
+using EXE201.Service.DTOs.OutfitSizeDTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,6 +39,14 @@ namespace EXE201.Service.Mapper
             CreateMap<UpdateOutfitImageDto, OutfitImage>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         
+            // OutfitSizeDTOs -> Model.OutfitSize
+            CreateMap<OutfitSize, OutfitSizeResponseDto>()
+                .ForMember(dest => dest.OutfitName, opt => opt.MapFrom(src => src.Outfit != null ? src.Outfit.Name : null));
+            CreateMap<CreateOutfitSizeDto, OutfitSize>();
+            CreateMap<UpdateOutfitSizeDto, OutfitSize>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+      
+            // Legacy DTO (keep for backward compatibility if needed)
             CreateMap<OutfitSize, OutfitSizeDTO>().ReverseMap();
         }
     }

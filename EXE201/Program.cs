@@ -92,6 +92,7 @@ namespace EXE201
             builder.Services.AddScoped<IEmailService, SmtpEmailService>();
             builder.Services.AddScoped<IWishlistService, WishlistService>();
             builder.Services.AddScoped<IOutfitImageService, OutfitImageService>();
+            builder.Services.AddScoped<IOutfitSizeService, OutfitSizeService>();
             
             // Caching
             builder.Services.AddMemoryCache();
