@@ -1,13 +1,11 @@
 ﻿using AutoMapper;
-using EXE201.Repository.Implementations;
 using EXE201.Repository.Interfaces;
 using EXE201.Repository.Models;
-using EXE201.Service.DTOs;
+using EXE201.Service.DTOs.WishlistDTOs;
 using EXE201.Service.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EXE201.Service.Implementation
@@ -23,29 +21,29 @@ namespace EXE201.Service.Implementation
             _mapper = mapper;
         }
    
-        public async Task<IEnumerable<WishlistDTO>> GetWishlistsByUserIdAsync(int userId)
+        public async Task<IEnumerable<WishlistResponseDto>> GetWishlistsByUserIdAsync(int userId)
         {
             var wishlists = await _unitOfWork.Wishlists.FindAsync(w => w.UserId == userId);
-            return _mapper.Map<IEnumerable<WishlistDTO>>(wishlists);
+            return _mapper.Map<IEnumerable<WishlistResponseDto>>(wishlists);
         }
 
-        public async Task<WishlistDTO> GetByIdAsync(int id)
+        public async Task<WishlistResponseDto?> GetByIdAsync(int id)
         {
             var wishlist = await _unitOfWork.Wishlists.GetByIdAsync(id);
             if (wishlist == null) return null;
-            return _mapper.Map<WishlistDTO>(wishlist);
+            return _mapper.Map<WishlistResponseDto>(wishlist);
         }
 
-        public async Task<bool> AddToWishlistAsync(int userId, int outfitId)
+        public async Task<bool> AddToWishlistAsync(int userId, AddToWishlistDto dto)
         {
             // Check if already exists
-            var exists = await IsInWishlistAsync(userId, outfitId);
-            if (exists) return false; // Already in wishlist
+            var checkResult = await IsInWishlistAsync(userId, dto.OutfitId);
+            if (checkResult.IsInWishlist) return false; // Already in wishlist
 
             var wishlist = new Wishlist
             {
                 UserId = userId,
-                OutfitId = outfitId,
+                OutfitId = dto.OutfitId,
                 AddedAt = DateTime.UtcNow
             };
 
@@ -54,12 +52,12 @@ namespace EXE201.Service.Implementation
             return true;
         }
 
-        public async Task<bool> RemoveFromWishlistAsync(int wishlistId, int userId)
+        public async Task<bool> RemoveFromWishlistAsync(int userId, int outfitId)
         {
-            var wishlist = await _unitOfWork.Wishlists.GetByIdAsync(wishlistId);
+            var wishlist = await _unitOfWork.Wishlists.FirstOrDefaultAsync(w => w.UserId == userId && w.OutfitId == outfitId);
             
             // Verify ownership
-            if (wishlist == null || wishlist.UserId != userId) 
+            if (wishlist == null) 
                 return false;
 
             await _unitOfWork.Wishlists.DeleteAsync(wishlist);
@@ -67,10 +65,16 @@ namespace EXE201.Service.Implementation
             return true;
         }
 
-        public async Task<bool> IsInWishlistAsync(int userId, int outfitId)
+        public async Task<WishlistCheckDto> IsInWishlistAsync(int userId, int outfitId)
         {
-            return await _unitOfWork.Wishlists.ExistAsync(w => 
+            var wishlist = await _unitOfWork.Wishlists.FirstOrDefaultAsync(w => 
                 w.UserId == userId && w.OutfitId == outfitId);
+            
+            return new WishlistCheckDto
+            {
+                IsInWishlist = wishlist != null,
+                WishlistId = wishlist?.WishlistId
+            };
         }
     }
 }
