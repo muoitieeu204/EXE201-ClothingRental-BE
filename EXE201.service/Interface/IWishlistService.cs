@@ -1,27 +1,24 @@
-﻿using EXE201.Service.DTOs;
-using System;
+﻿using EXE201.Service.DTOs.WishlistDTOs;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EXE201.Service.Interface
 {
-  public interface IWishlistService
+    public interface IWishlistService
     {
-        // Get all wishlists for a specific user
-        Task<IEnumerable<WishlistDTO>> GetWishlistsByUserIdAsync(int userId);
+   // Get all wishlists for a specific user
+        Task<IEnumerable<WishlistResponseDto>> GetWishlistsByUserIdAsync(int userId);
    
-        // Get specific wishlist by ID (for authorization checks)
-    Task<WishlistDTO> GetByIdAsync(int id);
+ // Get specific wishlist by ID (for authorization checks)
+        Task<WishlistResponseDto?> GetByIdAsync(int id);
         
         // Add outfit to user's wishlist (returns false if already exists)
-        Task<bool> AddToWishlistAsync(int userId, int outfitId);
+        Task<bool> AddToWishlistAsync(int userId, AddToWishlistDto dto);
         
         // Remove from wishlist
- Task<bool> RemoveFromWishlistAsync(int userId, int outfitId);
+  Task<bool> RemoveFromWishlistAsync(int userId, int outfitId);
         
-      // Check if outfit is already in user's wishlist
-    Task<bool> IsInWishlistAsync(int userId, int outfitId);
+        // Check if outfit is already in user's wishlist
+        Task<WishlistCheckDto> IsInWishlistAsync(int userId, int outfitId);
     }
 }

@@ -1,12 +1,9 @@
 ﻿using AutoMapper;
 using EXE201.Repository.Interfaces;
 using EXE201.Repository.Models;
-using EXE201.Service.DTOs;
+using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.Interface;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EXE201.Service.Implementation
@@ -21,7 +18,7 @@ namespace EXE201.Service.Implementation
             _mapper = mapper;
         }
 
-        public async Task<bool> AddAsync(OutfitImageDTO entity)
+        public async Task<bool> AddAsync(CreateOutfitImageDto entity)
         {
             var exist = await IsInOutfit(entity.OutfitId);
             if (exist) return false;
@@ -42,21 +39,21 @@ namespace EXE201.Service.Implementation
             return true;
         }
 
-        public async Task<OutfitImageDTO> GetByImageIdAsync(int id)
+        public async Task<OutfitImageResponseDto?> GetByImageIdAsync(int id)
         {
             var outfitImage = await _unitOfWork.OutfitImages.GetByIdAsync(id);
             if (outfitImage == null) return null;
-            return _mapper.Map<OutfitImageDTO>(outfitImage);
+            return _mapper.Map<OutfitImageResponseDto>(outfitImage);
         }
 
-        public async Task<IEnumerable<OutfitImageDTO>> GetImageByOutfitIdAsync(int id)
+        public async Task<IEnumerable<OutfitImageResponseDto>> GetImageByOutfitIdAsync(int id)
         {
             var outfitImage = await _unitOfWork.OutfitImages.GetImagesByOutfitIdAsync(id);
-            return _mapper.Map<IEnumerable<OutfitImageDTO>>(outfitImage);
+            return _mapper.Map<IEnumerable<OutfitImageResponseDto>>(outfitImage);
         }
 
 
-        public async Task<bool> UpdateAsync(int id, OutfitImageDTO entity)
+        public async Task<bool> UpdateAsync(int id, UpdateOutfitImageDto entity)
         {
             var outfitImage = await _unitOfWork.OutfitImages.GetByIdAsync(id);
             if(outfitImage == null) return false;

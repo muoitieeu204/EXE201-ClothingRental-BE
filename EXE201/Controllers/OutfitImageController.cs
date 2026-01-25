@@ -1,4 +1,4 @@
-﻿using EXE201.Service.DTOs;
+﻿using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -56,7 +56,7 @@ public class OutfitImageController : ControllerBase
 
     [HttpPost]
     [Authorize]
-    public async Task<IActionResult> AddAsync([FromBody] OutfitImageDTO entity)
+    public async Task<IActionResult> AddAsync([FromBody] CreateOutfitImageDto entity)
     {
         try
         {
@@ -75,7 +75,7 @@ public class OutfitImageController : ControllerBase
 
     [HttpPut("{id}")] // FIXED: Added {id} to the route for Update
     [Authorize]
-    public async Task<IActionResult> UpdateAsync(int id, [FromBody] OutfitImageDTO entity)
+    public async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdateOutfitImageDto entity)
     {
         try
         {

@@ -2,6 +2,8 @@
 using EXE201.Repository.Models;
 using EXE201.Service.DTOs;
 using EXE201.Service.DTOs.UserDTOs;
+using EXE201.Service.DTOs.WishlistDTOs;
+using EXE201.Service.DTOs.OutfitImageDTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,8 +21,23 @@ namespace EXE201.Service.Mapper
             CreateMap<User, UserDetailDto>().ReverseMap();
             CreateMap<UpdateUserProfileDto, User>().ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
             CreateMap<User,UserDTO>().ForMember(opt => opt.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
-            CreateMap<Wishlist, WishlistDTO>().ReverseMap();
-            CreateMap<OutfitImage,OutfitImageDTO>().ReverseMap();
+    
+            // WishlistDTOs -> Model.Wishlist
+            CreateMap<Wishlist, WishlistResponseDto>()
+                .ForMember(dest => dest.OutfitName, opt => opt.MapFrom(src => src.Outfit != null ? src.Outfit.Name : null))
+                .ForMember(dest => dest.OutfitPrice, opt => opt.MapFrom(src => src.Outfit != null ? (decimal?)src.Outfit.BaseRentalPrice : null))
+                .ForMember(dest => dest.OutfitImageUrl, opt => opt.MapFrom(src => 
+                    src.Outfit != null && src.Outfit.OutfitImages != null && src.Outfit.OutfitImages.Any() 
+                        ? src.Outfit.OutfitImages.OrderBy(img => img.SortOrder).FirstOrDefault()!.ImageUrl 
+                        : null));
+            CreateMap<AddToWishlistDto, Wishlist>();
+            
+            // OutfitImageDTOs -> Model.OutfitImage
+            CreateMap<OutfitImage, OutfitImageResponseDto>().ReverseMap();
+            CreateMap<CreateOutfitImageDto, OutfitImage>();
+            CreateMap<UpdateOutfitImageDto, OutfitImage>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+        
             CreateMap<OutfitSize, OutfitSizeDTO>().ReverseMap();
         }
     }

@@ -1,4 +1,5 @@
 ﻿using EXE201.Service.DTOs;
+using EXE201.Service.DTOs.WishlistDTOs;
 using EXE201.Service.Interface;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -67,7 +68,7 @@ namespace EXE201.API.Controllers
         /// Add outfit to current user's wishlist
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> AddToWishlist([FromBody] AddToWishlistRequest request)
+        public async Task<IActionResult> AddToWishlist([FromBody] AddToWishlistDto request)
         {
             if (request.OutfitId <= 0)
                 return BadRequest(new { success = false, message = "Invalid OutfitId." });
@@ -77,7 +78,7 @@ namespace EXE201.API.Controllers
                 var userId = GetCurrentUserId();
                 if (userId == 0) return Unauthorized("Invalid user token.");
 
-                var result = await _wishlistService.AddToWishlistAsync(userId, request.OutfitId);
+                var result = await _wishlistService.AddToWishlistAsync(userId, request);
 
                 if (!result)
                     return Conflict(new { success = false, message = "Outfit is already in your wishlist." });
@@ -156,11 +157,5 @@ namespace EXE201.API.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             return int.TryParse(userIdClaim, out var userId) ? userId : 0;
         }
-    }
-
-    // Request DTO for adding to wishlist
-    public class AddToWishlistRequest
-    {
-        public int OutfitId { get; set; }
     }
 }
