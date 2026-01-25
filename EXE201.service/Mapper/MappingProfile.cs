@@ -21,6 +21,7 @@ namespace EXE201.Service.Mapper
             CreateMap<User,UserDTO>().ForMember(opt => opt.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
             CreateMap<Wishlist, WishlistDTO>().ReverseMap();
             CreateMap<OutfitImage,OutfitImageDTO>().ReverseMap();
+            CreateMap<OutfitSize, OutfitSizeDTO>().ReverseMap();
         }
     }
 }

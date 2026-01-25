@@ -23,7 +23,7 @@ namespace EXE201.Service.Implementation
 
         public async Task<bool> AddAsync(OutfitImageDTO entity)
         {
-            var exist = await IsInOutfit(entity.ImageId, entity.OutfitId);
+            var exist = await IsInOutfit(entity.OutfitId);
             if (exist) return false;
 
             var outfitImage = _mapper.Map<OutfitImage>(entity);
@@ -65,9 +65,9 @@ namespace EXE201.Service.Implementation
             await _unitOfWork.SaveChangesAsync();
             return true;
         }
-        public async Task<bool> IsInOutfit(int id, int outfitId)
+        public async Task<bool> IsInOutfit(int outfitId)
         {
-            return await _unitOfWork.OutfitImages.ExistAsync(o => o.ImageId == id && o.OutfitId == outfitId);
+            return await _unitOfWork.OutfitImages.ExistAsync(o =>o.OutfitId == outfitId);
         }
     }
 }

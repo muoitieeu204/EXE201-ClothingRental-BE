@@ -54,12 +54,12 @@ namespace EXE201.Service.Implementation
             return true;
         }
 
-        public async Task<bool> RemoveFromWishlistAsync(int wishlistId, int userId)
+        public async Task<bool> RemoveFromWishlistAsync(int userId, int outfitId)
         {
-            var wishlist = await _unitOfWork.Wishlists.GetByIdAsync(wishlistId);
+            var wishlist = await _unitOfWork.Wishlists.FirstOrDefaultAsync(w => w.UserId == userId && w.OutfitId == outfitId);
             
             // Verify ownership
-            if (wishlist == null || wishlist.UserId != userId) 
+            if (wishlist == null) 
                 return false;
 
             await _unitOfWork.Wishlists.DeleteAsync(wishlist);

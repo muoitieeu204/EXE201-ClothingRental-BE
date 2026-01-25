@@ -138,7 +138,7 @@ namespace EXE201.API.Controllers
                 if (wishlistItem == null)
                     return NotFound(new { success = false, message = "Outfit not found in your wishlist." });
 
-                var result = await _wishlistService.RemoveFromWishlistAsync(wishlistItem.WishlistId, userId);
+                var result = await _wishlistService.RemoveFromWishlistAsync(userId, outfitId);
 
                 if (!result)
                     return NotFound(new { success = false, message = "Failed to remove outfit from wishlist." });

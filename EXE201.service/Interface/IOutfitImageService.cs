@@ -14,7 +14,7 @@ namespace EXE201.Service.Interface
         Task<bool> AddAsync(OutfitImageDTO entity);
         Task<bool> UpdateAsync(int id, OutfitImageDTO entity);
         Task<bool> DeleteAsync(int id);
-        Task<bool> IsInOutfit(int id, int outfitId);
+        Task<bool> IsInOutfit( int outfitId);
 
     }
 }

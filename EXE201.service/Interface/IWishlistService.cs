@@ -19,7 +19,7 @@ namespace EXE201.Service.Interface
         Task<bool> AddToWishlistAsync(int userId, int outfitId);
         
         // Remove from wishlist
- Task<bool> RemoveFromWishlistAsync(int wishlistId, int userId);
+ Task<bool> RemoveFromWishlistAsync(int userId, int outfitId);
         
       // Check if outfit is already in user's wishlist
     Task<bool> IsInWishlistAsync(int userId, int outfitId);

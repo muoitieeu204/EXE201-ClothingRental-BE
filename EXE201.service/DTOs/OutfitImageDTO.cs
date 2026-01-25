@@ -10,8 +10,6 @@ namespace EXE201.Service.DTOs
     public class OutfitImageDTO
     {
         [Required]
-        public int ImageId { get; set; }
-        [Required]
         public int OutfitId { get; set; }
         [Required]
         public string ImageUrl { get; set; } = null!;

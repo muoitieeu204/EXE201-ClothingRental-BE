@@ -44,7 +44,6 @@ namespace EXE201.Service.Implementation
                 Token = token,
                 User = new UserDTO
                 {
-                    UserId = user.UserId,
                     Email = user.Email,
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
