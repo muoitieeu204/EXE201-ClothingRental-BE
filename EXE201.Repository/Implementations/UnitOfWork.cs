@@ -13,8 +13,10 @@ namespace EXE201.Repository.Implementations
         private readonly ClothingRentalDbContext _context;
         private IUserRepository _user;
         private IWishlistRepository _wishlist;
+        private IOutfitRepository _outfit;
         private IOutfitImageRepository _outfitImage;
         private IOutfitSizeRepository _outfitSize;
+        private ICategoryRepository _category;
 
         public UnitOfWork(ClothingRentalDbContext context)
         {
@@ -45,7 +47,7 @@ namespace EXE201.Repository.Implementations
 
         public IOutfitSizeRepository OutfitSizes => _outfitSize ??= new OutfitSizeRepository(_context);
 
-        public IOutfitRepository Outfits => throw new NotImplementedException();
+        public IOutfitRepository Outfits => _outfit ??= new OutfitRepository(_context);
 
         public IOutfitImageRepository OutfitImages => _outfitImage ??= new OutfitImageRepository(_context);
 
@@ -55,8 +57,7 @@ namespace EXE201.Repository.Implementations
 
         public IDepositTransactionRepository DepositTransactions => throw new NotImplementedException();
 
-        public ICategoryRepository Categories => throw new NotImplementedException();
-
+        public ICategoryRepository Categories => _category ??= new CategoryRepository(_context);
         public IBookingRepository Bookings => throw new NotImplementedException();
 
         public IBookingDetailRepository BookingDetails => throw new NotImplementedException();
