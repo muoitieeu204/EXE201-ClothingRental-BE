@@ -42,7 +42,6 @@ namespace EXE201.Service.Implementation
 
         public async Task<OutfitAttributeDto?> CreateAsync(CreateOutfitAttributeDto dto)
         {
-            // Vì repo có GetAttributeByOutfitIdAsync (singular) -> ngầm hiểu 1 outfit chỉ có 1 attribute
             var existed = await _uow.OutfitAttributes.ExistAsync(x => x.OutfitId == dto.OutfitId);
             if (existed) return null;
 

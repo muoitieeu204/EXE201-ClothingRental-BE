@@ -1,13 +1,12 @@
 ﻿using EXE201.Service.DTOs.OutfitAttributeDTOs;
 using EXE201.Service.Interface;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EXE201.API.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]/[action]")]
     public class OutfitAttributesController : ControllerBase
     {
         private readonly IOutfitAttributeService _service;

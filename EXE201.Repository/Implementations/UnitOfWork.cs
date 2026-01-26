@@ -17,6 +17,7 @@ namespace EXE201.Repository.Implementations
         private IOutfitImageRepository _outfitImage;
         private IOutfitSizeRepository _outfitSize;
         private ICategoryRepository _category;
+        private IOutfitAttributeRepository _outfitAttribute;
 
         public UnitOfWork(ClothingRentalDbContext context)
         {
@@ -51,8 +52,7 @@ namespace EXE201.Repository.Implementations
 
         public IOutfitImageRepository OutfitImages => _outfitImage ??= new OutfitImageRepository(_context);
 
-        public IOutfitAttributeRepository OutfitAttributes => throw new NotImplementedException();
-
+        public IOutfitAttributeRepository OutfitAttributes => _outfitAttribute ??= new OutfitAttributeRepository(_context);
         public ILoyaltyTransactionRepository LoyaltyTransactions => throw new NotImplementedException();
 
         public IDepositTransactionRepository DepositTransactions => throw new NotImplementedException();

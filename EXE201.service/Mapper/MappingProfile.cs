@@ -1,16 +1,13 @@
 ﻿using AutoMapper;
 using EXE201.Repository.Models;
 using EXE201.Service.DTOs;
-using EXE201.Service.DTOs.UserDTOs;
-using EXE201.Service.DTOs.WishlistDTOs;
+using EXE201.Service.DTOs.OutfitAttributeDTOs;
+using EXE201.Service.DTOs.OutfitDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.DTOs.OutfitSizeDTOs;
-using EXE201.Service.DTOs.OutfitDTOs;
-using System;
-using System.Collections.Generic;
+using EXE201.Service.DTOs.UserDTOs;
+using EXE201.Service.DTOs.WishlistDTOs;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EXE201.Service.Mapper
 {
@@ -21,8 +18,10 @@ namespace EXE201.Service.Mapper
             // UserDTOs -> Model.User
             CreateMap<User, ListUserDto>().ReverseMap();
             CreateMap<User, UserDetailDto>().ReverseMap();
-            CreateMap<UpdateUserProfileDto, User>().ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<User, UserDTO>().ForMember(opt => opt.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
+            CreateMap<UpdateUserProfileDto, User>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+            CreateMap<User, UserDTO>()
+                .ForMember(opt => opt.RoleName, opt => opt.MapFrom(src => src.Role.RoleName));
 
             // WishlistDTOs -> Model.Wishlist
             CreateMap<Wishlist, WishlistResponseDto>()
@@ -46,6 +45,20 @@ namespace EXE201.Service.Mapper
             CreateMap<CreateOutfitSizeDto, OutfitSize>();
             CreateMap<UpdateOutfitSizeDto, OutfitSize>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // ✅ OutfitAttributeDTOs -> Model.OutfitAttribute (BỔ SUNG ĐẦY ĐỦ)
+            // dùng cho GetAll/GetById map entity -> OutfitAttributeDto
+            CreateMap<OutfitAttribute, OutfitAttributeDto>().ReverseMap();
+
+            // dùng cho Create
+            CreateMap<CreateOutfitAttributeDto, OutfitAttribute>();
+
+            // dùng cho Update (partial update - chỉ map field != null)
+            CreateMap<UpdateOutfitAttributeDto, OutfitAttribute>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // dùng cho OutfitDetailDto.Attributes
+            CreateMap<OutfitAttribute, OutfitAttributeInfo>().ReverseMap();
 
             // OutfitDTOs -> Model.Outfit
             CreateMap<Outfit, OutfitResponseDto>()
@@ -77,7 +90,6 @@ namespace EXE201.Service.Mapper
 
             CreateMap<OutfitImage, OutfitImageInfo>();
             CreateMap<OutfitSize, OutfitSizeInfo>();
-            CreateMap<OutfitAttribute, OutfitAttributeInfo>();
 
             CreateMap<CreateOutfitDto, Outfit>();
             CreateMap<UpdateOutfitDto, Outfit>()

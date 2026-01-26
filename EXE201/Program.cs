@@ -94,7 +94,8 @@ namespace EXE201
             builder.Services.AddScoped<IOutfitImageService, OutfitImageService>();
             builder.Services.AddScoped<IOutfitSizeService, OutfitSizeService>();
             builder.Services.AddScoped<IOutfitService, OutfitService>();
-            
+            builder.Services.AddScoped<IOutfitAttributeService, OutfitAttributeService>();
+
             // Caching
             builder.Services.AddMemoryCache();
 
