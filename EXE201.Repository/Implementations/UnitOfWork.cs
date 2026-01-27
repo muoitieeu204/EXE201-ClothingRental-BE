@@ -16,6 +16,8 @@ namespace EXE201.Repository.Implementations
         private IOutfitRepository _outfit;
         private IOutfitImageRepository _outfitImage;
         private IOutfitSizeRepository _outfitSize;
+        private IReviewRepository _review;
+        private IReviewImageRepository _reviewImage;
         private ICategoryRepository _category;
         private IOutfitAttributeRepository _outfitAttribute;
 
@@ -38,9 +40,9 @@ namespace EXE201.Repository.Implementations
 
         public IRoleRepository Roles => throw new NotImplementedException();
 
-        public IReviewRepository Reviews => throw new NotImplementedException();
+        public IReviewRepository Reviews => _review ??= new ReviewRepository(_context);
 
-        public IReviewImageRepository ReviewImages => throw new NotImplementedException();
+        public IReviewImageRepository ReviewImages => _reviewImage ??= new ReviewImageRepository(_context);
 
         public IRentalPackageRepository RentalPackages => throw new NotImplementedException();
 

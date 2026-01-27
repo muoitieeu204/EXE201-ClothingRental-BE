@@ -5,6 +5,8 @@ using EXE201.Service.DTOs.OutfitAttributeDTOs;
 using EXE201.Service.DTOs.OutfitDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.DTOs.OutfitSizeDTOs;
+using EXE201.Service.DTOs.ReviewDTOs;
+using EXE201.Service.DTOs.ReviewImageDTOs;
 using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
 using System.Linq;
@@ -59,6 +61,19 @@ namespace EXE201.Service.Mapper
 
             // dùng cho OutfitDetailDto.Attributes
             CreateMap<OutfitAttribute, OutfitAttributeInfo>().ReverseMap();
+
+            // ReviewDTOs -> Model.Review
+            CreateMap<Review, ReviewResponseDto>()
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.ReviewImages));
+            CreateMap<CreateReviewDto, Review>();
+            CreateMap<UpdateReviewDto, Review>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // ReviewImageDTOs -> Model.ReviewImage
+            CreateMap<ReviewImage, ReviewImageResponseDto>().ReverseMap();
+            CreateMap<CreateReviewImageDto, ReviewImage>();
+            CreateMap<UpdateReviewImageDto, ReviewImage>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // OutfitDTOs -> Model.Outfit
             CreateMap<Outfit, OutfitResponseDto>()
