@@ -5,6 +5,7 @@ using EXE201.Service.DTOs.OutfitAttributeDTOs;
 using EXE201.Service.DTOs.OutfitDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.DTOs.OutfitSizeDTOs;
+using EXE201.Service.DTOs.RentalPackageDTOs;
 using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
 using System.Linq;
@@ -97,6 +98,13 @@ namespace EXE201.Service.Mapper
 
             // Legacy DTO (keep for backward compatibility if needed)
             CreateMap<OutfitSize, OutfitSizeDTO>().ReverseMap();
+
+            // RentalPackageDTOs -> Model.RentalPackage
+            CreateMap<RentalPackage, RentalPackageDto>().ReverseMap();
+            CreateMap<RentalPackage, RentalPackageDetailDto>().ReverseMap();
+            CreateMap<RentalPackage, RentalPackageSelectDto>().ReverseMap();
+            CreateMap<CreateRentalPackageDto, RentalPackage>().ReverseMap();
+            CreateMap<UpdateRentalPackageDto, RentalPackage>().ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }
