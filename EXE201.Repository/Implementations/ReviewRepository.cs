@@ -22,6 +22,7 @@ namespace EXE201.Repository.Implementations
         {
             return await _context.Reviews
                 .Include(r => r.ReviewImages)
+                .Include(r => r.User)
                 .ToListAsync();
         }
 
@@ -29,6 +30,7 @@ namespace EXE201.Repository.Implementations
         {
             return await _context.Reviews
                 .Include(r => r.ReviewImages)
+                .Include(r => r.User)
                 .FirstOrDefaultAsync(r => r.ReviewId == id);
         }
 
@@ -36,6 +38,7 @@ namespace EXE201.Repository.Implementations
         {
             return await _context.Reviews
                 .Include(r => r.ReviewImages)
+                .Include(r => r.User)
                 .Where(r => r.OutfitId == outfitId)
                 .ToListAsync();
         }
@@ -44,6 +47,7 @@ namespace EXE201.Repository.Implementations
         {
             return await _context.Reviews
                 .Include(r => r.ReviewImages)
+                .Include(r => r.User)
                 .Where(r => r.UserId == userId)
                 .ToListAsync();
         }

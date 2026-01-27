@@ -54,6 +54,27 @@ namespace EXE201.API.Controllers
         }
 
         /// <summary>
+        /// Get all reviews for a specific outfit
+        /// </summary>
+        [HttpGet("outfit/{outfitId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetByOutfitId(int outfitId)
+        {
+            try
+            {
+                if (outfitId <= 0)
+                    return BadRequest(new { success = false, message = "Please provide a valid OutfitId." });
+
+                var reviews = await _reviewService.GetAllAsync(outfitId, null);
+                return Ok(new { success = true, data = reviews, count = reviews.Count() });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { success = false, message = "Error retrieving reviews by outfit." });
+            }
+        }
+
+        /// <summary>
         /// Create a new review
         /// </summary>
         [HttpPost]

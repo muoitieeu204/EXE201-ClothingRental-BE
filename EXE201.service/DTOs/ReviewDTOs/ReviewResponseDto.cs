@@ -9,6 +9,8 @@ namespace EXE201.Service.DTOs.ReviewDTOs
         public int ReviewId { get; set; }
         public int OutfitId { get; set; }
         public int UserId { get; set; }
+        public string? UserFullName { get; set; }
+        public string? UserEmail { get; set; }
         public int? Rating { get; set; }
         public string? Comment { get; set; }
         public DateTime? CreatedAt { get; set; }

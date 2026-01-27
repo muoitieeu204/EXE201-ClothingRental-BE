@@ -64,7 +64,9 @@ namespace EXE201.Service.Mapper
 
             // ReviewDTOs -> Model.Review
             CreateMap<Review, ReviewResponseDto>()
-                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.ReviewImages));
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.ReviewImages))
+                .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : null))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : null));
             CreateMap<CreateReviewDto, Review>();
             CreateMap<UpdateReviewDto, Review>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
