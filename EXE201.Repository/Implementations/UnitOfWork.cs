@@ -20,6 +20,8 @@ namespace EXE201.Repository.Implementations
         private IReviewImageRepository _reviewImage;
         private ICategoryRepository _category;
         private IOutfitAttributeRepository _outfitAttribute;
+        private IServicePackageRepository _servicePackage;
+        private IStudioRepository _studio;
 
         public UnitOfWork(ClothingRentalDbContext context)
         {
@@ -30,9 +32,9 @@ namespace EXE201.Repository.Implementations
 
         public IWishlistRepository Wishlists => _wishlist ??= new WishlistRepository(_context);
 
-        public IStudioRepository Studios => throw new NotImplementedException();
+        public IStudioRepository Studios => _studio ??= new StudioRepository(_context);
 
-        public IServicePackageRepository ServicePackages => throw new NotImplementedException();
+        public IServicePackageRepository ServicePackages => _servicePackage ??= new ServicePackageRepository(_context);
 
         public IServiceBookingRepository ServiceBookings => throw new NotImplementedException();
 

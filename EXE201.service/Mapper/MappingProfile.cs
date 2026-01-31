@@ -9,6 +9,7 @@ using EXE201.Service.DTOs.ReviewDTOs;
 using EXE201.Service.DTOs.ReviewImageDTOs;
 using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
+using EXE201.Service.DTOs.ServicePackageDTOs;
 using System.Linq;
 
 namespace EXE201.Service.Mapper
@@ -34,6 +35,24 @@ namespace EXE201.Service.Mapper
                         ? src.Outfit.OutfitImages.OrderBy(img => img.SortOrder).FirstOrDefault()!.ImageUrl
                         : null));
             CreateMap<AddToWishlistDto, Wishlist>();
+
+            // ServicePackageDTOs -> Model.ServicePackage
+            CreateMap<ServicePackage, ServicePackageResponseDto>()
+                .ForMember(dest => dest.StudioName, opt => opt.MapFrom(src => src.Studio != null ? src.Studio.Name : null))
+                .ForMember(dest => dest.TotalAddons, opt => opt.MapFrom(src => src.ServiceAddons != null ? src.ServiceAddons.Count : 0))
+                .ForMember(dest => dest.TotalBookings, opt => opt.MapFrom(src => src.ServiceBookings != null ? src.ServiceBookings.Count : 0));
+
+            CreateMap<ServicePackage, ServicePackageDetailDto>()
+                .ForMember(dest => dest.StudioName, opt => opt.MapFrom(src => src.Studio != null ? src.Studio.Name : null))
+                .ForMember(dest => dest.StudioAddress, opt => opt.MapFrom(src => src.Studio != null ? src.Studio.Address : null))
+                .ForMember(dest => dest.StudioContactInfo, opt => opt.MapFrom(src => src.Studio != null ? src.Studio.ContactInfo : null))
+                .ForMember(dest => dest.Addons, opt => opt.MapFrom(src => src.ServiceAddons))
+                .ForMember(dest => dest.TotalBookings, opt => opt.MapFrom(src => src.ServiceBookings != null ? src.ServiceBookings.Count : 0));
+
+            CreateMap<ServiceAddon, ServiceAddonInfo>();
+            CreateMap<CreateServicePackageDto, ServicePackage>();
+            CreateMap<UpdateServicePackageDto, ServicePackage>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // OutfitImageDTOs -> Model.OutfitImage
             CreateMap<OutfitImage, OutfitImageResponseDto>().ReverseMap();
