@@ -9,7 +9,7 @@ namespace EXE201.Repository.Interfaces
     public interface IUnitOfWork : IDisposable
     {
         public IUserRepository Users { get; }
-
+        public IAddressRepository Addresses { get; }
         public IWishlistRepository Wishlists { get; }
         public IStudioRepository Studios { get; }
         public IServicePackageRepository ServicePackages { get; }
@@ -29,6 +29,8 @@ namespace EXE201.Repository.Interfaces
         public ICategoryRepository Categories { get; }
         public IBookingRepository Bookings { get; }
         public IBookingDetailRepository BookingDetails { get; }
+        public IServiceAddonRepository ServiceAddons { get; }
+
         Task<int> SaveChangesAsync();
     }
 }

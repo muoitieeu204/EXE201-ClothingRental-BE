@@ -19,11 +19,22 @@ namespace EXE201.Repository.Implementations
         private ICategoryRepository _category;
         private IOutfitAttributeRepository _outfitAttribute;
         private IRentalPackageRepository _rentalPackage;
+        private IBookingRepository _booking;
+        private IBookingDetailRepository _bookingDetail;
+        private IPaymentRepository _payment;
+        private IDepositTransactionRepository _depositTransaction;
+        private IServicePackageRepository _servicePackage;
+        private IServiceAddonRepository _serviceAddon;
+        private IServiceBookingRepository _serviceBooking;
+        private IServiceBookingAddonRepository _serviceBookingAddon;
+        private IAddressRepository _address;
+
 
         public UnitOfWork(ClothingRentalDbContext context)
         {
             _context = context;
         }
+        public IAddressRepository Addresses => _address ??= new AddressRepository(_context);
 
         public IUserRepository Users => _user ??= new UserRepository(_context);
 
@@ -31,11 +42,13 @@ namespace EXE201.Repository.Implementations
 
         public IStudioRepository Studios => throw new NotImplementedException();
 
-        public IServicePackageRepository ServicePackages => throw new NotImplementedException();
+        public IServicePackageRepository ServicePackages => _servicePackage ??= new ServicePackageRepository(_context);
 
-        public IServiceBookingRepository ServiceBookings => throw new NotImplementedException();
+        public IServiceBookingRepository ServiceBookings => _serviceBooking ??= new ServiceBookingRepository(_context);
 
-        public IServiceBookingAddonRepository ServiceBookingAddons => throw new NotImplementedException();
+        public IServiceBookingAddonRepository ServiceBookingAddons => _serviceBookingAddon ??= new ServiceBookingAddonRepository(_context);
+
+        public IServiceAddonRepository ServiceAddons => _serviceAddon ??= new ServiceAddonRepository(_context);
 
         public IRoleRepository Roles => throw new NotImplementedException();
 
@@ -45,7 +58,7 @@ namespace EXE201.Repository.Implementations
 
         public IRentalPackageRepository RentalPackages => _rentalPackage ??= new RentalPackageRepository(_context);
 
-        public IPaymentRepository Payments => throw new NotImplementedException();
+        public IPaymentRepository Payments => _payment ??= new PaymentRepository(_context);
 
         public IOutfitSizeRepository OutfitSizes => _outfitSize ??= new OutfitSizeRepository(_context);
 
@@ -56,12 +69,12 @@ namespace EXE201.Repository.Implementations
         public IOutfitAttributeRepository OutfitAttributes => _outfitAttribute ??= new OutfitAttributeRepository(_context);
         public ILoyaltyTransactionRepository LoyaltyTransactions => throw new NotImplementedException();
 
-        public IDepositTransactionRepository DepositTransactions => throw new NotImplementedException();
+        public IDepositTransactionRepository DepositTransactions => _depositTransaction ??= new DepositTransactionRepository(_context);
 
         public ICategoryRepository Categories => _category ??= new CategoryRepository(_context);
-        public IBookingRepository Bookings => throw new NotImplementedException();
+        public IBookingRepository Bookings => _booking ??= new BookingRepository(_context);
 
-        public IBookingDetailRepository BookingDetails => throw new NotImplementedException();
+        public IBookingDetailRepository BookingDetails => _bookingDetail ??= new BookingDetailRepository(_context);
 
         public async Task<int> SaveChangesAsync()
         {
