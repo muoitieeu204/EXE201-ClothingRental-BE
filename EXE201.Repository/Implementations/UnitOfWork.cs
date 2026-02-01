@@ -22,6 +22,8 @@ namespace EXE201.Repository.Implementations
         private IOutfitAttributeRepository _outfitAttribute;
         private IServicePackageRepository _servicePackage;
         private IStudioRepository _studio;
+        private IServiceBookingRepository _serviceBooking;
+        private IBookingRepository _booking;
 
         public UnitOfWork(ClothingRentalDbContext context)
         {
@@ -36,7 +38,7 @@ namespace EXE201.Repository.Implementations
 
         public IServicePackageRepository ServicePackages => _servicePackage ??= new ServicePackageRepository(_context);
 
-        public IServiceBookingRepository ServiceBookings => throw new NotImplementedException();
+        public IServiceBookingRepository ServiceBookings => _serviceBooking ??= new ServiceBookingRepository(_context);
 
         public IServiceBookingAddonRepository ServiceBookingAddons => throw new NotImplementedException();
 
@@ -62,7 +64,7 @@ namespace EXE201.Repository.Implementations
         public IDepositTransactionRepository DepositTransactions => throw new NotImplementedException();
 
         public ICategoryRepository Categories => _category ??= new CategoryRepository(_context);
-        public IBookingRepository Bookings => throw new NotImplementedException();
+        public IBookingRepository Bookings => _booking ??= new BookingRepository(_context);
 
         public IBookingDetailRepository BookingDetails => throw new NotImplementedException();
 
