@@ -161,54 +161,9 @@ namespace EXE201.Service.Mapper
                 .ForMember(d => d.AddressId, opt => opt.Ignore())
                 .ForMember(d => d.UserId, opt => opt.Ignore()).ReverseMap();
 
-            // =========================
-            // SERVICE BOOKING + ADDONS
-            // =========================
-            CreateMap<ServiceBookingAddon, ServiceBookingAddonDto>()
-                .ForMember(d => d.AddonName, opt => opt.MapFrom(s => s.Addon != null ? s.Addon.Name : null));
-
-            CreateMap<ServiceBooking, ServiceBookingDto>()
-                .ForMember(d => d.ServicePkgName, opt => opt.MapFrom(s => s.ServicePkg != null ? s.ServicePkg.Name : null))
-                .ForMember(d => d.Addons, opt => opt.MapFrom(s => s.ServiceBookingAddons));
-
-            // =========================
-            // BOOKING -> DTOs
-            // =========================
-            CreateMap<Booking, BookingDto>()
-                .ForMember(d => d.TotalItems, opt => opt.MapFrom(s => s.BookingDetails != null ? s.BookingDetails.Count : 0))
-                .ForMember(d => d.UserEmail, opt => opt.MapFrom(s => s.User != null ? s.User.Email : null))
-                .ForMember(d => d.UserFullName, opt => opt.MapFrom(s => s.User != null ? s.User.FullName : null));
-
-            CreateMap<Booking, BookingDetailDto>()
-                .IncludeBase<Booking, BookingDto>()
-                .ForMember(d => d.BookingDetails, opt => opt.MapFrom(s => s.BookingDetails))
-                .ForMember(d => d.DepositTransactions, opt => opt.MapFrom(s => s.DepositTransactions))
-                .ForMember(d => d.Payments, opt => opt.MapFrom(s => s.Payments))
-                .ForMember(d => d.ServiceBookings, opt => opt.MapFrom(s => s.ServiceBookings));
-
-            // BookingDetail -> line DTO (show convenience info)
-            CreateMap<BookingDetail, BookingDetailLineDto>()
-                .ForMember(d => d.OutfitName, opt => opt.MapFrom(s =>
-                    s.OutfitSize != null && s.OutfitSize.Outfit != null ? s.OutfitSize.Outfit.Name : null))
-                .ForMember(d => d.SizeLabel, opt => opt.MapFrom(s =>
-                    s.OutfitSize != null ? s.OutfitSize.SizeLabel : null))
-                .ForMember(d => d.PackageName, opt => opt.MapFrom(s =>
-                    s.RentalPackage != null ? s.RentalPackage.Name : null))
-                .ForMember(d => d.PackageDurationHours, opt => opt.MapFrom(s =>
-                    s.RentalPackage != null ? (int?)s.RentalPackage.DurationHours : null));
-
-            CreateMap<DepositTransaction, DepositTransactionDto>();
-            CreateMap<Payment, PaymentDto>();
-
-            // =========================
-            // DTO -> BOOKING (Create/Update)
-            // =========================
-            // CreateBookingDto map Booking basic fields only.
-            // Items/Services sẽ được service xử lý để tạo BookingDetails/ServiceBookings
-            CreateMap<CreateBookingDto, Booking>();
-
-            CreateMap<UpdateBookingDto, Booking>()
-                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+            // BookingDTOs -> Model.Booking
+            CreateMap<Booking, BookingDto>().ReverseMap();
+            CreateMap<BookingDetail, BookingDetailDto>().ReverseMap();
 
         }
     }
