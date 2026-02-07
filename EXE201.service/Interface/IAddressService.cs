@@ -9,13 +9,12 @@ namespace EXE201.Service.Interface
 {
     public interface IAddressService
     {
-        Task<IEnumerable<AddressDto>> GetMyAddressesAsync(int userId, bool includeInactive = false);
+        Task<IEnumerable<AddressDto>> GetMyAddressesAsync(int userId);
         Task<AddressDto?> GetMyAddressByIdAsync(int userId, int addressId);
-        Task<IEnumerable<AddressDto>> GetAddressesByUserIdAsync(int userId, bool includeInactive = false);
+        Task<IEnumerable<AddressDto>> GetAddressesByUserIdAsync(int userId);
+
         Task<AddressDto> CreateMyAddressAsync(int userId, CreateAddressDto dto);
         Task<bool> UpdateMyAddressAsync(int userId, int addressId, UpdateAddressDto dto);
-
         Task<bool> DeleteMyAddressAsync(int userId, int addressId);
-        Task<bool> RestoreMyAddressAsync(int userId, int addressId); 
     }
 }

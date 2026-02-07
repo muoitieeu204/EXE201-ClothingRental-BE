@@ -151,13 +151,13 @@ namespace EXE201.Service.Mapper
             // =========================
             // ADDRESS
             // ========================= 
-            CreateMap<Address, AddressDto>().ReverseMap();
+            CreateMap<UserAddress, AddressDto>().ReverseMap();
 
-            CreateMap<CreateAddressDto, Address>()
+            CreateMap<CreateAddressDto, UserAddress>()
                 .ForMember(d => d.AddressId, opt => opt.Ignore())
                 .ForMember(d => d.UserId, opt => opt.Ignore()).ReverseMap();
 
-            CreateMap<UpdateAddressDto, Address>()
+            CreateMap<UpdateAddressDto, UserAddress>()
                 .ForMember(d => d.AddressId, opt => opt.Ignore())
                 .ForMember(d => d.UserId, opt => opt.Ignore()).ReverseMap();
 

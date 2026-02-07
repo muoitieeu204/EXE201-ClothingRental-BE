@@ -24,5 +24,12 @@ namespace EXE201.Repository.Implementations
                 .Where(b => b.UserId == userId)
                 .ToListAsync();
         }
+
+        public async Task<List<Booking>> GetBookingsByAddressIdAsync(int addressId)
+        {
+            return await _context.Bookings
+                .Where(b => b.AddressId == addressId)
+                .ToListAsync();
+        }
     }
 }

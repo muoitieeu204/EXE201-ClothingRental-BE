@@ -34,7 +34,7 @@ namespace EXE201.Repository.Implementations
         {
             _context = context;
         }
-        public IAddressRepository Addresses => _address ??= new AddressRepository(_context);
+        public IAddressRepository UserAddresses => _address ??= new AddressRepository(_context);
 
         public IUserRepository Users => _user ??= new UserRepository(_context);
 

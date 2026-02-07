@@ -27,8 +27,6 @@ public partial class User
 
     public DateTime? UpdatedAt { get; set; }
 
-    public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
-
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public virtual ICollection<LoyaltyTransaction> LoyaltyTransactions { get; set; } = new List<LoyaltyTransaction>();
@@ -38,6 +36,8 @@ public partial class User
     public virtual Role Role { get; set; }
 
     public virtual ICollection<ServiceBooking> ServiceBookings { get; set; } = new List<ServiceBooking>();
+
+    public virtual ICollection<UserAddress> UserAddresses { get; set; } = new List<UserAddress>();
 
     public virtual ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
 }

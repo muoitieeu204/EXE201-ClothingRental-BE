@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace EXE201.Repository.Implementations
 {
-    public class AddressRepository : GenericRepository<Address>, IAddressRepository
+    public class AddressRepository : GenericRepository<UserAddress>, IAddressRepository
     {
         private readonly ClothingRentalDbContext _context;
 
@@ -18,9 +18,9 @@ namespace EXE201.Repository.Implementations
             _context = context;
         }
 
-        public async Task<IEnumerable<Address>> GetByUserIdAsync(int userId)
+        public async Task<IEnumerable<UserAddress>> GetByUserIdAsync(int userId)
         {
-            return await _context.Addresses
+            return await _context.UserAddresses
                 .Where(a => a.UserId == userId)
                 .OrderByDescending(a => a.AddressId)
                 .ToListAsync();

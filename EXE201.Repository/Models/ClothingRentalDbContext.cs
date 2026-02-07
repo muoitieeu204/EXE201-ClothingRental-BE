@@ -13,8 +13,6 @@ public partial class ClothingRentalDbContext : DbContext
     {
     }
 
-    public virtual DbSet<Address> Addresses { get; set; }
-
     public virtual DbSet<Booking> Bookings { get; set; }
 
     public virtual DbSet<BookingDetail> BookingDetails { get; set; }
@@ -55,34 +53,15 @@ public partial class ClothingRentalDbContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<UserAddress> UserAddresses { get; set; }
+
     public virtual DbSet<Wishlist> Wishlists { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Address>(entity =>
-        {
-            entity.HasKey(e => e.AddressId).HasName("PK__Address__091C2AFBB5DDBFDF");
-
-            entity.ToTable("Address");
-
-            entity.HasIndex(e => e.UserId, "IX_Address_UserId");
-
-            entity.Property(e => e.AddressText)
-                .IsRequired()
-                .HasMaxLength(255);
-            entity.Property(e => e.Status)
-                .IsRequired()
-                .HasMaxLength(50);
-
-            entity.HasOne(d => d.User).WithMany(p => p.Addresses)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Address_Users");
-        });
-
         modelBuilder.Entity<Booking>(entity =>
         {
-            entity.HasKey(e => e.BookingId).HasName("PK__Bookings__73951AEDF13EB55C");
+            entity.HasKey(e => e.BookingId).HasName("PK__Bookings__73951AED36BC3699");
 
             entity.Property(e => e.AddressText).HasMaxLength(255);
             entity.Property(e => e.BookingDate)
@@ -96,7 +75,7 @@ public partial class ClothingRentalDbContext : DbContext
 
             entity.HasOne(d => d.Address).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.AddressId)
-                .HasConstraintName("FK_Bookings_Address");
+                .HasConstraintName("FK_Bookings_UserAddresses");
 
             entity.HasOne(d => d.User).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.UserId)
@@ -106,7 +85,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<BookingDetail>(entity =>
         {
-            entity.HasKey(e => e.DetailId).HasName("PK__BookingD__135C316DA54F4BA2");
+            entity.HasKey(e => e.DetailId).HasName("PK__BookingD__135C316D5419AAA6");
 
             entity.Property(e => e.DamageFee)
                 .HasDefaultValue(0m)
@@ -138,7 +117,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<Category>(entity =>
         {
-            entity.HasKey(e => e.CategoryId).HasName("PK__Categori__19093A0BA517F0AB");
+            entity.HasKey(e => e.CategoryId).HasName("PK__Categori__19093A0B23B1A770");
 
             entity.Property(e => e.CategoryName)
                 .IsRequired()
@@ -147,7 +126,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<DepositTransaction>(entity =>
         {
-            entity.HasKey(e => e.TransId).HasName("PK__DepositT__9E5DDB3CB8D8E7FB");
+            entity.HasKey(e => e.TransId).HasName("PK__DepositT__9E5DDB3C2FF64C49");
 
             entity.Property(e => e.AmountDeducted).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.AmountHeld).HasColumnType("decimal(18, 2)");
@@ -164,7 +143,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<LoyaltyTransaction>(entity =>
         {
-            entity.HasKey(e => e.TransactionId).HasName("PK__LoyaltyT__55433A6BCB11CFDE");
+            entity.HasKey(e => e.TransactionId).HasName("PK__LoyaltyT__55433A6B56D97C43");
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -180,7 +159,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<Outfit>(entity =>
         {
-            entity.HasKey(e => e.OutfitId).HasName("PK__Outfits__399B99B1FC886C58");
+            entity.HasKey(e => e.OutfitId).HasName("PK__Outfits__399B99B1D4698121");
 
             entity.Property(e => e.BaseRentalPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt)
@@ -203,9 +182,9 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<OutfitAttribute>(entity =>
         {
-            entity.HasKey(e => e.DetailId).HasName("PK__OutfitAt__135C316D8D9C4EE8");
+            entity.HasKey(e => e.DetailId).HasName("PK__OutfitAt__135C316DBB0CECC4");
 
-            entity.HasIndex(e => e.OutfitId, "UQ__OutfitAt__399B99B006B219CC").IsUnique();
+            entity.HasIndex(e => e.OutfitId, "UQ__OutfitAt__399B99B01351115C").IsUnique();
 
             entity.Property(e => e.ColorPrimary).HasMaxLength(100);
             entity.Property(e => e.CulturalOrigin).HasMaxLength(255);
@@ -224,7 +203,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<OutfitImage>(entity =>
         {
-            entity.HasKey(e => e.ImageId).HasName("PK__OutfitIm__7516F70CB3751FA9");
+            entity.HasKey(e => e.ImageId).HasName("PK__OutfitIm__7516F70C426EFF01");
 
             entity.Property(e => e.ImageType).HasMaxLength(50);
             entity.Property(e => e.ImageUrl).IsRequired();
@@ -237,7 +216,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<OutfitSize>(entity =>
         {
-            entity.HasKey(e => e.SizeId).HasName("PK__OutfitSi__83BD097AAE1EEF4A");
+            entity.HasKey(e => e.SizeId).HasName("PK__OutfitSi__83BD097A6DB2F042");
 
             entity.Property(e => e.SizeLabel)
                 .IsRequired()
@@ -253,7 +232,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<Payment>(entity =>
         {
-            entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A389F25063E");
+            entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A385CBECA29");
 
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.PaymentMethod).HasMaxLength(50);
@@ -271,7 +250,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<RentalPackage>(entity =>
         {
-            entity.HasKey(e => e.PackageId).HasName("PK__RentalPa__322035CC30222FA7");
+            entity.HasKey(e => e.PackageId).HasName("PK__RentalPa__322035CCD1B957BC");
 
             entity.Property(e => e.Name)
                 .IsRequired()
@@ -281,7 +260,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<Review>(entity =>
         {
-            entity.HasKey(e => e.ReviewId).HasName("PK__Reviews__74BC79CE3602D95E");
+            entity.HasKey(e => e.ReviewId).HasName("PK__Reviews__74BC79CED9263253");
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -300,7 +279,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<ReviewImage>(entity =>
         {
-            entity.HasKey(e => e.ImgId).HasName("PK__ReviewIm__352F54F355863906");
+            entity.HasKey(e => e.ImgId).HasName("PK__ReviewIm__352F54F3D3525B2D");
 
             entity.HasOne(d => d.Review).WithMany(p => p.ReviewImages)
                 .HasForeignKey(d => d.ReviewId)
@@ -310,7 +289,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE1ADF858ACD");
+            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE1AC3E18994");
 
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.RoleName)
@@ -320,7 +299,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<ServiceAddon>(entity =>
         {
-            entity.HasKey(e => e.AddonId).HasName("PK__ServiceA__742895337B32F894");
+            entity.HasKey(e => e.AddonId).HasName("PK__ServiceA__742895331CFB5E56");
 
             entity.Property(e => e.Name)
                 .IsRequired()
@@ -335,7 +314,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<ServiceBooking>(entity =>
         {
-            entity.HasKey(e => e.SvcBookingId).HasName("PK__ServiceB__05C39E96E0545274");
+            entity.HasKey(e => e.SvcBookingId).HasName("PK__ServiceB__05C39E96AD27D33E");
 
             entity.Property(e => e.ServiceTime).HasColumnType("datetime");
             entity.Property(e => e.Status).HasMaxLength(50);
@@ -358,7 +337,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<ServiceBookingAddon>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__ServiceB__3214EC07335BC087");
+            entity.HasKey(e => e.Id).HasName("PK__ServiceB__3214EC07D2E91926");
 
             entity.Property(e => e.PriceAtBooking).HasColumnType("decimal(18, 2)");
 
@@ -375,7 +354,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<ServicePackage>(entity =>
         {
-            entity.HasKey(e => e.ServicePkgId).HasName("PK__ServiceP__97092E973FDE74D7");
+            entity.HasKey(e => e.ServicePkgId).HasName("PK__ServiceP__97092E97BB94F7B7");
 
             entity.Property(e => e.BasePrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Name)
@@ -390,7 +369,7 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<Studio>(entity =>
         {
-            entity.HasKey(e => e.StudioId).HasName("PK__Studios__4ACC3B70C8838308");
+            entity.HasKey(e => e.StudioId).HasName("PK__Studios__4ACC3B7034C51072");
 
             entity.Property(e => e.ContactInfo).HasMaxLength(255);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -401,9 +380,9 @@ public partial class ClothingRentalDbContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CC4C3B572EBC");
+            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CC4C2A97CA98");
 
-            entity.HasIndex(e => e.Email, "UQ__Users__A9D1053495EB44DA").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__Users__A9D1053439BEFE40").IsUnique();
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -423,9 +402,30 @@ public partial class ClothingRentalDbContext : DbContext
                 .HasConstraintName("FK_Users_Roles");
         });
 
+        modelBuilder.Entity<UserAddress>(entity =>
+        {
+            entity.HasKey(e => e.AddressId).HasName("PK__UserAddr__091C2AFB5948119B");
+
+            entity.HasIndex(e => e.UserId, "IX_UserAddresses_UserId");
+
+            entity.Property(e => e.AddressLine).HasMaxLength(255);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.District).HasMaxLength(100);
+            entity.Property(e => e.IsDefault).HasDefaultValue(false);
+            entity.Property(e => e.Label).HasMaxLength(50);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.RecipientName).HasMaxLength(100);
+            entity.Property(e => e.Ward).HasMaxLength(100);
+
+            entity.HasOne(d => d.User).WithMany(p => p.UserAddresses)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UserAddresses_Users");
+        });
+
         modelBuilder.Entity<Wishlist>(entity =>
         {
-            entity.HasKey(e => e.WishlistId).HasName("PK__Wishlist__233189EBB7826477");
+            entity.HasKey(e => e.WishlistId).HasName("PK__Wishlist__233189EB98352EAE");
 
             entity.Property(e => e.AddedAt)
                 .HasDefaultValueSql("(getdate())")

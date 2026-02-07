@@ -59,36 +59,25 @@ namespace EXE201.Service.Implementation
         {
             if (dto == null) return null;
             if (dto.Items == null || dto.Items.Count == 0) return null;
+            if (dto.AddressId <= 0) return null;
 
-            // 1) Validate AddressId + snapshot AddressText
-            var address = await _uow.Addresses.GetByIdAsync(dto.AddressId);
+            // 1) Validate UserAddress + snapshot AddressText
+            var address = await _uow.UserAddresses.GetByIdAsync(dto.AddressId); // << đổi từ Addresses sang UserAddresses
             if (address == null) return null;
             if (address.UserId != userId) return null;
 
-            // Chỉ cho dùng Address Active
-            if (string.IsNullOrWhiteSpace(address.Status) ||
-                !address.Status.Trim().Equals("Active", StringComparison.OrdinalIgnoreCase))
+            // bắt buộc phải có AddressLine (vì table cho NULL nhưng đặt hàng mà thiếu thì chịu)
+            if (string.IsNullOrWhiteSpace(address.AddressLine))
                 return null;
 
-            var booking = new Booking
-            {
-                UserId = userId,
-                AddressId = address.AddressId,
-                AddressText = address.AddressText, // snapshot
-                Status = "Pending",
-                PaymentStatus = "Unpaid",
-                BookingDate = DateTime.Now
-            };
+            var addressSnapshot = BuildAddressSnapshot(address);
 
-            // 2) Add booking trước để lấy BookingId
-            await _uow.Bookings.AddAsync(booking);
-            await _uow.SaveChangesAsync();
-
+            // 2) Pre-validate items + build details in-memory (chưa ghi DB)
+            var details = new List<BookingDetail>();
             decimal totalRental = 0m;
             decimal totalDeposit = 0m;
             decimal totalSurcharge = 0m;
 
-            // 3) Create BookingDetails + tính tổng
             foreach (var item in dto.Items)
             {
                 var size = await _uow.OutfitSizes.GetByIdAsync(item.OutfitSizeId);
@@ -100,15 +89,20 @@ namespace EXE201.Service.Implementation
                 var pkg = await _uow.RentalPackages.GetByIdAsync(item.RentalPackageId);
                 if (pkg == null) return null;
 
+                var start = item.StartTime;
+                if (start == default) return null;
+
+                var end = start.AddHours(pkg.DurationHours);
+
                 var unitPrice = outfit.BaseRentalPrice * (decimal)pkg.PriceFactor;
 
                 var depositPercent = (decimal)(pkg.DepositPercent ?? 0);
+                if (depositPercent < 0) depositPercent = 0;
+                // nếu data bị nhập 30 thay vì 0.3 thì chặn nhẹ
+                if (depositPercent > 1) depositPercent = depositPercent / 100m;
+
                 var deposit = unitPrice * depositPercent;
 
-                var start = item.StartTime;
-                var end = start.AddHours(pkg.DurationHours);
-
-                // Optional: phụ thu cuối tuần (nếu có)
                 if (pkg.WeekendSurchargePercent.HasValue)
                 {
                     var isWeekend = start.DayOfWeek == DayOfWeek.Saturday || start.DayOfWeek == DayOfWeek.Sunday;
@@ -116,9 +110,8 @@ namespace EXE201.Service.Implementation
                         totalSurcharge += unitPrice * (decimal)pkg.WeekendSurchargePercent.Value;
                 }
 
-                var detail = new BookingDetail
+                details.Add(new BookingDetail
                 {
-                    BookingId = booking.BookingId,
                     OutfitSizeId = item.OutfitSizeId,
                     RentalPackageId = item.RentalPackageId,
                     StartTime = start,
@@ -128,25 +121,75 @@ namespace EXE201.Service.Implementation
                     LateFee = 0,
                     DamageFee = 0,
                     Status = "Pending"
-                };
-
-                await _uow.BookingDetails.AddAsync(detail);
+                });
 
                 totalRental += unitPrice;
                 totalDeposit += deposit;
             }
 
-            // 4) Update totals
-            booking.TotalRentalAmount = totalRental;
-            booking.TotalDepositAmount = totalDeposit;
-            booking.TotalSurcharge = totalSurcharge;
+            // 3) Create booking (set totals trước)
+            var booking = new Booking
+            {
+                UserId = userId,
+                AddressId = address.AddressId,
+                AddressText = addressSnapshot, // snapshot từ UserAddress
+                TotalRentalAmount = totalRental,
+                TotalDepositAmount = totalDeposit,
+                TotalSurcharge = totalSurcharge,
+                Status = "Pending",
+                PaymentStatus = "Unpaid",
+                BookingDate = DateTime.Now
+            };
 
-            await _uow.Bookings.UpdateAsync(booking);
+            // 4) Save booking để lấy BookingId
+            await _uow.Bookings.AddAsync(booking);
             await _uow.SaveChangesAsync();
 
-            // 5) Return created booking (kèm details nếu GetMyBookingByIdAsync có map details)
+            // 5) Save details
+            foreach (var d in details)
+            {
+                d.BookingId = booking.BookingId;
+                await _uow.BookingDetails.AddAsync(d);
+            }
+            await _uow.SaveChangesAsync();
+
+            // 6) Return created booking
             return await GetMyBookingByIdAsync(userId, booking.BookingId);
         }
+
+        private static string BuildAddressSnapshot(UserAddress a)
+        {
+            // Format: "RecipientName - Phone, AddressLine, Ward, District, City"
+            var headParts = new List<string>();
+
+            var name = a.RecipientName?.Trim();
+            var phone = a.PhoneNumber?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(phone))
+                headParts.Add($"{name} - {phone}");
+            else if (!string.IsNullOrWhiteSpace(name))
+                headParts.Add(name);
+            else if (!string.IsNullOrWhiteSpace(phone))
+                headParts.Add(phone);
+
+            var tailParts = new List<string?>
+    {
+        a.AddressLine,
+        a.Ward,
+        a.District,
+        a.City
+    };
+
+            var tail = string.Join(", ", tailParts
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!.Trim()));
+
+            if (headParts.Count == 0) return tail;
+            if (string.IsNullOrWhiteSpace(tail)) return headParts[0];
+
+            return $"{headParts[0]}, {tail}";
+        }
+
 
         public async Task<bool> CompleteMyBookingAsync(int userId, int bookingId)
         {

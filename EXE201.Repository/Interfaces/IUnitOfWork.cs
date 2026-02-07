@@ -9,7 +9,7 @@ namespace EXE201.Repository.Interfaces
     public interface IUnitOfWork : IDisposable
     {
         public IUserRepository Users { get; }
-        public IAddressRepository Addresses { get; }
+        public IAddressRepository UserAddresses { get; }
         public IWishlistRepository Wishlists { get; }
         public IStudioRepository Studios { get; }
         public IServicePackageRepository ServicePackages { get; }

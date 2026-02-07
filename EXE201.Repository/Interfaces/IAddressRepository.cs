@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace EXE201.Repository.Interfaces
 {
-    public interface IAddressRepository : IGenericRepository<Address>
+    public interface IAddressRepository : IGenericRepository<UserAddress>
     {
-        Task<IEnumerable<Address>> GetByUserIdAsync(int userId);
+        Task<IEnumerable<UserAddress>> GetByUserIdAsync(int userId);
     }
 }

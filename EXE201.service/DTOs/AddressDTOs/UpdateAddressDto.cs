@@ -1,16 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace EXE201.Service.DTOs.AddressDTOs
 {
     public class UpdateAddressDto
     {
-        [Required]
+        [MaxLength(50)]
+        public string? Label { get; set; }
+
+        [MaxLength(100)]
+        public string? RecipientName { get; set; }
+
+        [MaxLength(20)]
+        public string? PhoneNumber { get; set; }
+
         [MaxLength(255)]
-        public string? AddressText { get; set; }
+        public string? AddressLine { get; set; }
+
+        [MaxLength(100)]
+        public string? Ward { get; set; }
+
+        [MaxLength(100)]
+        public string? District { get; set; }
+
+        [MaxLength(100)]
+        public string? City { get; set; }
+
+        public bool? IsDefault { get; set; }
     }
 }

@@ -27,7 +27,7 @@ public partial class Booking
 
     public DateTime? BookingDate { get; set; }
 
-    public virtual Address Address { get; set; }
+    public virtual UserAddress Address { get; set; }
 
     public virtual ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
 
