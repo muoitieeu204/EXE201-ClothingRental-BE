@@ -92,33 +92,6 @@ namespace EXE201.API.Controllers
         }
 
         /// <summary>
-        /// Remove outfit from current user's wishlist
-        /// </summary>
-        [HttpDelete("{wishlistId}")]
-        public async Task<IActionResult> RemoveFromWishlist(int wishlistId)
-        {
-            if (wishlistId <= 0)
-                return BadRequest(new { success = false, message = "Invalid wishlist ID." });
-
-            try
-            {
-                var userId = GetCurrentUserId();
-                if (userId == 0) return Unauthorized("Invalid user token.");
-
-                var result = await _wishlistService.RemoveFromWishlistAsync(wishlistId, userId);
-
-                if (!result)
-                    return NotFound(new { success = false, message = "Wishlist item not found or you don't have permission." });
-
-                return Ok(new { success = true, message = "Outfit removed from wishlist successfully." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = "An error occurred while removing from wishlist." });
-            }
-        }
-
-        /// <summary>
         /// Alternative: Remove by outfit ID (more intuitive for frontend)
         /// </summary>
         [HttpDelete("outfit/{outfitId}")]

@@ -18,9 +18,27 @@ namespace EXE201.Repository.Implementations
             _context = context;
         }
 
+        public override async Task<IEnumerable<Review>> GetAllAsync()
+        {
+            return await _context.Reviews
+                .Include(r => r.ReviewImages)
+                .Include(r => r.User)
+                .ToListAsync();
+        }
+
+        public override async Task<Review?> GetByIdAsync(int id)
+        {
+            return await _context.Reviews
+                .Include(r => r.ReviewImages)
+                .Include(r => r.User)
+                .FirstOrDefaultAsync(r => r.ReviewId == id);
+        }
+
         public async Task<IEnumerable<Review>> GetReviewsByOutfitIdAsync(int outfitId)
         {
             return await _context.Reviews
+                .Include(r => r.ReviewImages)
+                .Include(r => r.User)
                 .Where(r => r.OutfitId == outfitId)
                 .ToListAsync();
         }
@@ -28,6 +46,8 @@ namespace EXE201.Repository.Implementations
         public async Task<IEnumerable<Review>> GetReviewsByUserIdAsync(int userId)
         {
             return await _context.Reviews
+                .Include(r => r.ReviewImages)
+                .Include(r => r.User)
                 .Where(r => r.UserId == userId)
                 .ToListAsync();
         }

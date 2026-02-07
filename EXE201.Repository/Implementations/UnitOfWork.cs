@@ -16,6 +16,8 @@ namespace EXE201.Repository.Implementations
         private IOutfitRepository _outfit;
         private IOutfitImageRepository _outfitImage;
         private IOutfitSizeRepository _outfitSize;
+        private IReviewRepository _review;
+        private IReviewImageRepository _reviewImage;
         private ICategoryRepository _category;
         private IOutfitAttributeRepository _outfitAttribute;
         private IRentalPackageRepository _rentalPackage;
@@ -28,6 +30,10 @@ namespace EXE201.Repository.Implementations
         private IServiceBookingRepository _serviceBooking;
         private IServiceBookingAddonRepository _serviceBookingAddon;
         private IAddressRepository _address;
+        private IServicePackageRepository _servicePackage;
+        private IStudioRepository _studio;
+        private IServiceBookingRepository _serviceBooking;
+        private IBookingRepository _booking;
 
 
         public UnitOfWork(ClothingRentalDbContext context)
@@ -40,21 +46,22 @@ namespace EXE201.Repository.Implementations
 
         public IWishlistRepository Wishlists => _wishlist ??= new WishlistRepository(_context);
 
-        public IStudioRepository Studios => throw new NotImplementedException();
+        public IStudioRepository Studios => _studio ??= new StudioRepository(_context);
 
         public IServicePackageRepository ServicePackages => _servicePackage ??= new ServicePackageRepository(_context);
 
         public IServiceBookingRepository ServiceBookings => _serviceBooking ??= new ServiceBookingRepository(_context);
 
         public IServiceBookingAddonRepository ServiceBookingAddons => _serviceBookingAddon ??= new ServiceBookingAddonRepository(_context);
+        public IServiceBookingRepository ServiceBookings => _serviceBooking ??= new ServiceBookingRepository(_context);
 
         public IServiceAddonRepository ServiceAddons => _serviceAddon ??= new ServiceAddonRepository(_context);
 
         public IRoleRepository Roles => throw new NotImplementedException();
 
-        public IReviewRepository Reviews => throw new NotImplementedException();
+        public IReviewRepository Reviews => _review ??= new ReviewRepository(_context);
 
-        public IReviewImageRepository ReviewImages => throw new NotImplementedException();
+        public IReviewImageRepository ReviewImages => _reviewImage ??= new ReviewImageRepository(_context);
 
         public IRentalPackageRepository RentalPackages => _rentalPackage ??= new RentalPackageRepository(_context);
 
