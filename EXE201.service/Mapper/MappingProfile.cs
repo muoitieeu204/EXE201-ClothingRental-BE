@@ -1,12 +1,16 @@
 ﻿using AutoMapper;
 using EXE201.Repository.Models;
 using EXE201.Service.DTOs;
+using EXE201.Service.DTOs.AddressDTOs;
+using EXE201.Service.DTOs.BookingDTOs;
 using EXE201.Service.DTOs.OutfitAttributeDTOs;
 using EXE201.Service.DTOs.OutfitDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.DTOs.OutfitSizeDTOs;
-using EXE201.Service.DTOs.ReviewDTOs;
-using EXE201.Service.DTOs.ReviewImageDTOs;
+using EXE201.Service.DTOs.RentalPackageDTOs;
+using EXE201.Service.DTOs.ServiceAddonDTOs;
+using EXE201.Service.DTOs.ServiceBookingDTOs;
+using EXE201.Service.DTOs.ServicePackageDTOs;
 using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
 using EXE201.Service.DTOs.ServicePackageDTOs;
@@ -161,6 +165,68 @@ namespace EXE201.Service.Mapper
 
             // Legacy DTO (keep for backward compatibility if needed)
             CreateMap<OutfitSize, OutfitSizeDTO>().ReverseMap();
+
+            // RentalPackageDTOs -> Model.RentalPackage
+            CreateMap<RentalPackage, RentalPackageDto>().ReverseMap();
+            CreateMap<RentalPackage, RentalPackageDetailDto>().ReverseMap();
+            CreateMap<RentalPackage, RentalPackageSelectDto>().ReverseMap();
+            CreateMap<CreateRentalPackageDto, RentalPackage>().ReverseMap();
+            CreateMap<UpdateRentalPackageDto, RentalPackage>().ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // =========================
+            // RENTAL PACKAGE
+            // =========================
+            CreateMap<RentalPackage, RentalPackageDto>().ReverseMap();
+            CreateMap<RentalPackage, RentalPackageDetailDto>().ReverseMap();
+            CreateMap<RentalPackage, RentalPackageSelectDto>().ReverseMap();
+
+            CreateMap<CreateRentalPackageDto, RentalPackage>();
+            CreateMap<UpdateRentalPackageDto, RentalPackage>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // =========================
+            // SERVICE ADDON
+            // =========================
+            CreateMap<ServiceAddon, ServiceAddonDto>().ReverseMap();
+            CreateMap<ServiceAddon, ServiceAddonSelectDto>();
+
+            CreateMap<CreateServiceAddonDto, ServiceAddon>();
+            CreateMap<UpdateServiceAddonDto, ServiceAddon>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // =========================
+            // SERVICE PACKAGE
+            // =========================
+            CreateMap<ServicePackage, ServicePackageDto>().ReverseMap();
+            CreateMap<ServicePackage, ServicePackageSelectDto>();
+
+            CreateMap<ServicePackage, ServicePackageDetailDto>()
+                .ForMember(d => d.Addons, opt => opt.MapFrom(s => s.ServiceAddons));
+
+            // map ServiceAddon -> ServiceAddonInfoDto (for ServicePackageDetailDto)
+            CreateMap<ServiceAddon, ServiceAddonInfoDto>();
+
+            CreateMap<CreateServicePackageDto, ServicePackage>();
+            CreateMap<UpdateServicePackageDto, ServicePackage>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // =========================
+            // ADDRESS
+            // ========================= 
+            CreateMap<UserAddress, AddressDto>().ReverseMap();
+
+            CreateMap<CreateAddressDto, UserAddress>()
+                .ForMember(d => d.AddressId, opt => opt.Ignore())
+                .ForMember(d => d.UserId, opt => opt.Ignore()).ReverseMap();
+
+            CreateMap<UpdateAddressDto, UserAddress>()
+                .ForMember(d => d.AddressId, opt => opt.Ignore())
+                .ForMember(d => d.UserId, opt => opt.Ignore()).ReverseMap();
+
+            // BookingDTOs -> Model.Booking
+            CreateMap<Booking, BookingDto>().ReverseMap();
+            CreateMap<BookingDetail, BookingDetailDto>().ReverseMap();
+
         }
     }
 }

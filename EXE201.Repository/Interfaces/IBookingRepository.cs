@@ -10,5 +10,7 @@ namespace EXE201.Repository.Interfaces
     public interface IBookingRepository : IGenericRepository<Booking>
     {
         Task<IEnumerable<Booking>> GetBookingsByUserIdAsync(int userId);
+
+        Task<List<Booking>> GetBookingsByAddressIdAsync(int addressId);
     }
 }

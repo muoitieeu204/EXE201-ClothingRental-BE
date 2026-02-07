@@ -97,8 +97,9 @@ namespace EXE201
             builder.Services.AddScoped<IOutfitSizeService, OutfitSizeService>();
             builder.Services.AddScoped<IOutfitService, OutfitService>();
             builder.Services.AddScoped<IOutfitAttributeService, OutfitAttributeService>();
-            builder.Services.AddScoped<IServicePackageService, ServicePackageService>();
-            builder.Services.AddScoped<IServiceBookingService, ServiceBookingService>();
+            builder.Services.AddScoped<IRentalPackageService, RentalPackageService>();
+            builder.Services.AddScoped<IBookingService, BookingService>();
+            builder.Services.AddScoped<IAddressService, AddressService>();
 
             // Caching
             builder.Services.AddMemoryCache();
