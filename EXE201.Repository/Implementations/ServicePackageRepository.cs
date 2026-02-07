@@ -18,9 +18,30 @@ namespace EXE201.Repository.Implementations
             _context = context;
         }
 
+        public override async Task<ServicePackage?> GetByIdAsync(int id)
+        {
+            return await _context.ServicePackages
+                .Include(sp => sp.Studio)
+                .Include(sp => sp.ServiceAddons)
+                .Include(sp => sp.ServiceBookings)
+                .FirstOrDefaultAsync(sp => sp.ServicePkgId == id);
+        }
+
+        public override async Task<IEnumerable<ServicePackage>> GetAllAsync()
+        {
+            return await _context.ServicePackages
+                .Include(sp => sp.Studio)
+                .Include(sp => sp.ServiceAddons)
+                .Include(sp => sp.ServiceBookings)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<ServicePackage>> GetPackagesByStudioIdAsync(int studioId)
         {
             return await _context.ServicePackages
+                .Include(sp => sp.Studio)
+                .Include(sp => sp.ServiceAddons)
+                .Include(sp => sp.ServiceBookings)
                 .Where(sp => sp.StudioId == studioId)
                 .ToListAsync();
         }
