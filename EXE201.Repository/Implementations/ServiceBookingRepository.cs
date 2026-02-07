@@ -18,9 +18,37 @@ namespace EXE201.Repository.Implementations
             _context = context;
         }
 
+        public override async Task<ServiceBooking?> GetByIdAsync(int id)
+        {
+            return await _context.ServiceBookings
+                .Include(sb => sb.User)
+                .Include(sb => sb.Booking)
+                .Include(sb => sb.ServicePkg)
+                .ThenInclude(sp => sp.Studio)
+                .Include(sb => sb.ServiceBookingAddons)
+                .ThenInclude(sba => sba.Addon)
+                .FirstOrDefaultAsync(sb => sb.SvcBookingId == id);
+        }
+
+        public override async Task<IEnumerable<ServiceBooking>> GetAllAsync()
+        {
+            return await _context.ServiceBookings
+                .Include(sb => sb.User)
+                .Include(sb => sb.Booking)
+                .Include(sb => sb.ServicePkg)
+                .ThenInclude(sp => sp.Studio)
+                .Include(sb => sb.ServiceBookingAddons)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<ServiceBooking>> GetServiceBookingsByUserIdAsync(int userId)
         {
             return await _context.ServiceBookings
+                .Include(sb => sb.User)
+                .Include(sb => sb.Booking)
+                .Include(sb => sb.ServicePkg)
+                .ThenInclude(sp => sp.Studio)
+                .Include(sb => sb.ServiceBookingAddons)
                 .Where(sb => sb.UserId == userId)
                 .ToListAsync();
         }
@@ -28,6 +56,11 @@ namespace EXE201.Repository.Implementations
         public async Task<IEnumerable<ServiceBooking>> GetServiceBookingsByBookingIdAsync(int bookingId)
         {
             return await _context.ServiceBookings
+                .Include(sb => sb.User)
+                .Include(sb => sb.Booking)
+                .Include(sb => sb.ServicePkg)
+                .ThenInclude(sp => sp.Studio)
+                .Include(sb => sb.ServiceBookingAddons)
                 .Where(sb => sb.BookingId == bookingId)
                 .ToListAsync();
         }
