@@ -100,6 +100,8 @@ namespace EXE201
             builder.Services.AddScoped<IRentalPackageService, RentalPackageService>();
             builder.Services.AddScoped<IBookingService, BookingService>();
             builder.Services.AddScoped<IAddressService, AddressService>();
+            builder.Services.AddScoped<IServicePackageService, ServicePackageService>();
+            builder.Services.AddScoped<IServiceBookingService, ServiceBookingService>();
 
             // Caching
             builder.Services.AddMemoryCache();
