@@ -30,6 +30,7 @@ namespace EXE201.Repository.Implementations
         private IServiceBookingRepository _serviceBooking;
         private IServiceBookingAddonRepository _serviceBookingAddon;
         private IAddressRepository _address;
+        private IStudioRepository _studio;
 
 
         public UnitOfWork(ClothingRentalDbContext context)

@@ -8,14 +8,13 @@ using EXE201.Service.DTOs.OutfitDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.DTOs.OutfitSizeDTOs;
 using EXE201.Service.DTOs.RentalPackageDTOs;
-using EXE201.Service.DTOs.ServiceAddonDTOs;
 using EXE201.Service.DTOs.ServiceBookingDTOs;
 using EXE201.Service.DTOs.ServicePackageDTOs;
 using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
-using EXE201.Service.DTOs.ServicePackageDTOs;
-using EXE201.Service.DTOs.ServiceBookingDTOs;
 using System.Linq;
+using EXE201.Service.DTOs.ReviewDTOs;
+using EXE201.Service.DTOs.ReviewImageDTOs;
 
 namespace EXE201.Service.Mapper
 {
@@ -182,32 +181,6 @@ namespace EXE201.Service.Mapper
 
             CreateMap<CreateRentalPackageDto, RentalPackage>();
             CreateMap<UpdateRentalPackageDto, RentalPackage>()
-                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-
-            // =========================
-            // SERVICE ADDON
-            // =========================
-            CreateMap<ServiceAddon, ServiceAddonDto>().ReverseMap();
-            CreateMap<ServiceAddon, ServiceAddonSelectDto>();
-
-            CreateMap<CreateServiceAddonDto, ServiceAddon>();
-            CreateMap<UpdateServiceAddonDto, ServiceAddon>()
-                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-
-            // =========================
-            // SERVICE PACKAGE
-            // =========================
-            CreateMap<ServicePackage, ServicePackageDto>().ReverseMap();
-            CreateMap<ServicePackage, ServicePackageSelectDto>();
-
-            CreateMap<ServicePackage, ServicePackageDetailDto>()
-                .ForMember(d => d.Addons, opt => opt.MapFrom(s => s.ServiceAddons));
-
-            // map ServiceAddon -> ServiceAddonInfoDto (for ServicePackageDetailDto)
-            CreateMap<ServiceAddon, ServiceAddonInfoDto>();
-
-            CreateMap<CreateServicePackageDto, ServicePackage>();
-            CreateMap<UpdateServicePackageDto, ServicePackage>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // =========================
