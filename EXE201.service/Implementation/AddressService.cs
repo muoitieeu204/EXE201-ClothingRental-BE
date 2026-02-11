@@ -136,6 +136,34 @@ namespace EXE201.Service.Implementation
             return true;
         }
 
+        public async Task<AddressDto?> SetMyDefaultAddressAsync(int userId, int addressId)
+        {
+            var address = await _uow.UserAddresses.GetByIdAsync(addressId);
+            if (address == null) return null;
+            if (address.UserId != userId) return null;
+
+            var list = await _uow.UserAddresses.GetByUserIdAsync(userId);
+
+            foreach (var a in list)
+            {
+                var shouldBeDefault = a.AddressId == addressId;
+
+                // bool? safe compare
+                if ((a.IsDefault == true) != shouldBeDefault)
+                {
+                    a.IsDefault = shouldBeDefault;
+                    await _uow.UserAddresses.UpdateAsync(a);
+                }
+            }
+
+            await _uow.SaveChangesAsync();
+
+            // trả về đúng addressId vừa set (đã IsDefault = true)
+            // (address object cũng đã được update trong loop nếu nó nằm trong list)
+            return _mapper.Map<AddressDto>(address);
+        }
+
+
 
         /// <summary>
         /// Tắt IsDefault của các address khác (để tránh 2 default).
