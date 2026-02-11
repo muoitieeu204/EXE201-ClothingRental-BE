@@ -15,6 +15,7 @@ namespace EXE201.Service.Interface
 
         Task<AddressDto> CreateMyAddressAsync(int userId, CreateAddressDto dto);
         Task<bool> UpdateMyAddressAsync(int userId, int addressId, UpdateAddressDto dto);
+        Task<AddressDto?> SetMyDefaultAddressAsync(int userId, int addressId);
         Task<bool> DeleteMyAddressAsync(int userId, int addressId);
     }
 }

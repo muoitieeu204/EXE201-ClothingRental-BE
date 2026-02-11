@@ -91,6 +91,20 @@ namespace EXE201.API.Controllers
             return Ok(new { message = "Address updated successfully" });
         }
 
+        // PATCH /api/user-addresses/{addressId}/set-default
+        [HttpPatch("{addressId:int}/set-default")]
+        public async Task<IActionResult> SetDefault([FromRoute] int addressId)
+        {
+            if (!TryGetUserId(out var userId))
+                return Unauthorized(new { message = "Invalid token (missing user id)" });
+
+            var result = await _addressService.SetMyDefaultAddressAsync(userId, addressId);
+            if (result == null)
+                return NotFound(new { message = "Address not found" });
+
+            return Ok(result); // trả đúng cái vừa set default
+        }
+
         // DELETE /api/user-addresses/{addressId}  (hard delete)
         [HttpDelete("{addressId:int}")]
         public async Task<IActionResult> Delete([FromRoute] int addressId)

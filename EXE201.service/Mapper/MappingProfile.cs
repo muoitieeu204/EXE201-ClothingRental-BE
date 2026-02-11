@@ -8,12 +8,13 @@ using EXE201.Service.DTOs.OutfitDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.DTOs.OutfitSizeDTOs;
 using EXE201.Service.DTOs.RentalPackageDTOs;
-using EXE201.Service.DTOs.ServiceAddonDTOs;
 using EXE201.Service.DTOs.ServiceBookingDTOs;
 using EXE201.Service.DTOs.ServicePackageDTOs;
 using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
 using System.Linq;
+using EXE201.Service.DTOs.ReviewDTOs;
+using EXE201.Service.DTOs.ReviewImageDTOs;
 
 namespace EXE201.Service.Mapper
 {
@@ -38,6 +39,24 @@ namespace EXE201.Service.Mapper
                         ? src.Outfit.OutfitImages.OrderBy(img => img.SortOrder).FirstOrDefault()!.ImageUrl
                         : null));
             CreateMap<AddToWishlistDto, Wishlist>();
+
+            // ServicePackageDTOs -> Model.ServicePackage
+            CreateMap<ServicePackage, ServicePackageResponseDto>()
+                .ForMember(dest => dest.StudioName, opt => opt.MapFrom(src => src.Studio != null ? src.Studio.Name : null))
+                .ForMember(dest => dest.TotalAddons, opt => opt.MapFrom(src => src.ServiceAddons != null ? src.ServiceAddons.Count : 0))
+                .ForMember(dest => dest.TotalBookings, opt => opt.MapFrom(src => src.ServiceBookings != null ? src.ServiceBookings.Count : 0));
+
+            CreateMap<ServicePackage, ServicePackageDetailDto>()
+                .ForMember(dest => dest.StudioName, opt => opt.MapFrom(src => src.Studio != null ? src.Studio.Name : null))
+                .ForMember(dest => dest.StudioAddress, opt => opt.MapFrom(src => src.Studio != null ? src.Studio.Address : null))
+                .ForMember(dest => dest.StudioContactInfo, opt => opt.MapFrom(src => src.Studio != null ? src.Studio.ContactInfo : null))
+                .ForMember(dest => dest.Addons, opt => opt.MapFrom(src => src.ServiceAddons))
+                .ForMember(dest => dest.TotalBookings, opt => opt.MapFrom(src => src.ServiceBookings != null ? src.ServiceBookings.Count : 0));
+
+            CreateMap<ServiceAddon, ServiceAddonInfo>();
+            CreateMap<CreateServicePackageDto, ServicePackage>();
+            CreateMap<UpdateServicePackageDto, ServicePackage>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // OutfitImageDTOs -> Model.OutfitImage
             CreateMap<OutfitImage, OutfitImageResponseDto>().ReverseMap();
@@ -65,6 +84,21 @@ namespace EXE201.Service.Mapper
 
             // dùng cho OutfitDetailDto.Attributes
             CreateMap<OutfitAttribute, OutfitAttributeInfo>().ReverseMap();
+
+            // ReviewDTOs -> Model.Review
+            CreateMap<Review, ReviewResponseDto>()
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.ReviewImages))
+                .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : null))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : null));
+            CreateMap<CreateReviewDto, Review>();
+            CreateMap<UpdateReviewDto, Review>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+            // ReviewImageDTOs -> Model.ReviewImage
+            CreateMap<ReviewImage, ReviewImageResponseDto>().ReverseMap();
+            CreateMap<CreateReviewImageDto, ReviewImage>();
+            CreateMap<UpdateReviewImageDto, ReviewImage>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // OutfitDTOs -> Model.Outfit
             CreateMap<Outfit, OutfitResponseDto>()
@@ -101,6 +135,33 @@ namespace EXE201.Service.Mapper
             CreateMap<UpdateOutfitDto, Outfit>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
+            // ServiceBookingDTOs -> Model.ServiceBooking
+            CreateMap<ServiceBooking, ServiceBookingResponseDto>()
+                .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : null))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : null))
+                .ForMember(dest => dest.ServicePackageName, opt => opt.MapFrom(src => src.ServicePkg != null ? src.ServicePkg.Name : null))
+                .ForMember(dest => dest.StudioName, opt => opt.MapFrom(src => src.ServicePkg != null && src.ServicePkg.Studio != null ? src.ServicePkg.Studio.Name : null))
+                .ForMember(dest => dest.TotalAddons, opt => opt.MapFrom(src => src.ServiceBookingAddons != null ? src.ServiceBookingAddons.Count : 0));
+
+            CreateMap<ServiceBooking, ServiceBookingDetailDto>()
+                .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : null))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : null))
+                .ForMember(dest => dest.UserPhoneNumber, opt => opt.MapFrom(src => src.User != null ? src.User.PhoneNumber : null))
+                .ForMember(dest => dest.ServicePackageName, opt => opt.MapFrom(src => src.ServicePkg != null ? src.ServicePkg.Name : null))
+                .ForMember(dest => dest.ServicePackageDescription, opt => opt.MapFrom(src => src.ServicePkg != null ? src.ServicePkg.Description : null))
+                .ForMember(dest => dest.ServicePackageBasePrice, opt => opt.MapFrom(src => src.ServicePkg != null ? (decimal?)src.ServicePkg.BasePrice : null))
+                .ForMember(dest => dest.StudioName, opt => opt.MapFrom(src => src.ServicePkg != null && src.ServicePkg.Studio != null ? src.ServicePkg.Studio.Name : null))
+                .ForMember(dest => dest.StudioAddress, opt => opt.MapFrom(src => src.ServicePkg != null && src.ServicePkg.Studio != null ? src.ServicePkg.Studio.Address : null))
+                .ForMember(dest => dest.StudioContactInfo, opt => opt.MapFrom(src => src.ServicePkg != null && src.ServicePkg.Studio != null ? src.ServicePkg.Studio.ContactInfo : null))
+                .ForMember(dest => dest.Addons, opt => opt.MapFrom(src => src.ServiceBookingAddons));
+
+            CreateMap<ServiceBookingAddon, ServiceBookingAddonInfo>()
+                .ForMember(dest => dest.AddonName, opt => opt.MapFrom(src => src.Addon != null ? src.Addon.Name : null));
+
+            CreateMap<CreateServiceBookingDto, ServiceBooking>();
+            CreateMap<UpdateServiceBookingDto, ServiceBooking>()
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
             // Legacy DTO (keep for backward compatibility if needed)
             CreateMap<OutfitSize, OutfitSizeDTO>().ReverseMap();
 
@@ -120,32 +181,6 @@ namespace EXE201.Service.Mapper
 
             CreateMap<CreateRentalPackageDto, RentalPackage>();
             CreateMap<UpdateRentalPackageDto, RentalPackage>()
-                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-
-            // =========================
-            // SERVICE ADDON
-            // =========================
-            CreateMap<ServiceAddon, ServiceAddonDto>().ReverseMap();
-            CreateMap<ServiceAddon, ServiceAddonSelectDto>();
-
-            CreateMap<CreateServiceAddonDto, ServiceAddon>();
-            CreateMap<UpdateServiceAddonDto, ServiceAddon>()
-                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-
-            // =========================
-            // SERVICE PACKAGE
-            // =========================
-            CreateMap<ServicePackage, ServicePackageDto>().ReverseMap();
-            CreateMap<ServicePackage, ServicePackageSelectDto>();
-
-            CreateMap<ServicePackage, ServicePackageDetailDto>()
-                .ForMember(d => d.Addons, opt => opt.MapFrom(s => s.ServiceAddons));
-
-            // map ServiceAddon -> ServiceAddonInfoDto (for ServicePackageDetailDto)
-            CreateMap<ServiceAddon, ServiceAddonInfoDto>();
-
-            CreateMap<CreateServicePackageDto, ServicePackage>();
-            CreateMap<UpdateServicePackageDto, ServicePackage>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // =========================

@@ -76,7 +76,7 @@ namespace EXE201.Service.Implementation
                 PasswordHash = hashedPassword,
                 FullName = request.FullName,
                 PhoneNumber = request.PhoneNumber,
-                RoleId = 3,  // Default role for new users (customer)
+                RoleId = 1,  // Default role for new users (customer)
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
