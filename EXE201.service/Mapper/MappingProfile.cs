@@ -162,6 +162,10 @@ namespace EXE201.Service.Mapper
             CreateMap<UpdateServiceBookingDto, ServiceBooking>()
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
+            CreateMap<ServiceBooking, ServiceBookingDto>().ReverseMap();
+            CreateMap<ServiceBookingAddon, ServiceBookingAddonDto>().ReverseMap();
+
+
             // Legacy DTO (keep for backward compatibility if needed)
             CreateMap<OutfitSize, OutfitSizeDTO>().ReverseMap();
 
