@@ -2,6 +2,7 @@
 using EXE201.Repository.Interfaces;
 using EXE201.Repository.Models;
 using EXE201.Service.DTOs.BookingDTOs;
+using EXE201.Service.DTOs.ServiceBookingDTOs;
 using EXE201.Service.Interface;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -35,9 +36,8 @@ namespace EXE201.Service.Implementation
             {
                 if (includeDetails)
                 {
-                    // Không sửa repo => load details kiểu N+1 cho dễ test
-                    var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == b.BookingId);
-                    b.Details = _mapper.Map<List<BookingDetailDto>>(details);
+                    var details = await _uow.BookingDetails.GetDetailsByBookingIdAsync(b.BookingId);
+                    b.Details = await BuildBookingDetailDtosAsync(details);
                 }
 
                 await AttachComputedTotalsAsync(b);
@@ -52,8 +52,8 @@ namespace EXE201.Service.Implementation
             if (booking == null || booking.UserId != userId) return null;
 
             var dto = _mapper.Map<BookingDto>(booking);
-            var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == bookingId);
-            dto.Details = _mapper.Map<List<BookingDetailDto>>(details);
+            var details = await _uow.BookingDetails.GetDetailsByBookingIdAsync(bookingId);
+            dto.Details = await BuildBookingDetailDtosAsync(details);
             await AttachComputedTotalsAsync(dto);
 
             return dto;
@@ -199,11 +199,91 @@ namespace EXE201.Service.Implementation
 
         private async Task AttachComputedTotalsAsync(BookingDto dto)
         {
-            var serviceBookings = await _uow.ServiceBookings.GetServiceBookingsByBookingIdAsync(dto.BookingId);
-            var totalService = serviceBookings.Sum(sb => sb.TotalPrice ?? 0m);
-
+            var serviceBookings = (await _uow.ServiceBookings.GetServiceBookingsByBookingIdAsync(dto.BookingId)).ToList();
+            dto.ServiceBookings = _mapper.Map<List<ServiceBookingResponseDto>>(serviceBookings);
+            var totalService = dto.ServiceBookings.Sum(sb => sb.TotalPrice ?? 0m);
             dto.TotalServiceAmount = totalService;
             dto.TotalOrderAmount = (dto.TotalRentalAmount ?? 0m) + (dto.TotalSurcharge ?? 0m) + totalService;
+        }
+
+        private async Task<List<BookingDetailDto>> BuildBookingDetailDtosAsync(IEnumerable<BookingDetail> details)
+        {
+            var result = new List<BookingDetailDto>();
+
+            var rentalPackageCache = new Dictionary<int, RentalPackage?>();
+            var outfitSizeCache = new Dictionary<int, OutfitSize?>();
+            var outfitCache = new Dictionary<int, Outfit?>();
+            var outfitImageCache = new Dictionary<int, string?>();
+
+            foreach (var detail in details.OrderBy(d => d.DetailId))
+            {
+                var detailDto = _mapper.Map<BookingDetailDto>(detail);
+                detailDto.RentalDays = CalculateRentalDays(detail.StartTime, detail.EndTime);
+
+                if (detail.RentalPackageId > 0)
+                {
+                    if (!rentalPackageCache.TryGetValue(detail.RentalPackageId, out var rentalPackage))
+                    {
+                        rentalPackage = await _uow.RentalPackages.GetByIdAsync(detail.RentalPackageId);
+                        rentalPackageCache[detail.RentalPackageId] = rentalPackage;
+                    }
+
+                    detailDto.RentalPackageName = rentalPackage?.Name;
+                }
+
+                if (detail.OutfitSizeId > 0)
+                {
+                    if (!outfitSizeCache.TryGetValue(detail.OutfitSizeId, out var outfitSize))
+                    {
+                        outfitSize = await _uow.OutfitSizes.GetByIdAsync(detail.OutfitSizeId);
+                        outfitSizeCache[detail.OutfitSizeId] = outfitSize;
+                    }
+
+                    if (outfitSize != null)
+                    {
+                        detailDto.OutfitId = outfitSize.OutfitId;
+                        detailDto.OutfitSizeLabel = outfitSize.SizeLabel;
+
+                        if (!outfitCache.TryGetValue(outfitSize.OutfitId, out var outfit))
+                        {
+                            outfit = await _uow.Outfits.GetByIdAsync(outfitSize.OutfitId);
+                            outfitCache[outfitSize.OutfitId] = outfit;
+                        }
+
+                        if (outfit != null)
+                        {
+                            detailDto.OutfitName = outfit.Name;
+                            detailDto.OutfitType = outfit.Type;
+                        }
+
+                        if (!outfitImageCache.TryGetValue(outfitSize.OutfitId, out var primaryImageUrl))
+                        {
+                            var outfitImages = (await _uow.OutfitImages.FindAsync(img => img.OutfitId == outfitSize.OutfitId)).ToList();
+                            primaryImageUrl = outfitImages
+                                .OrderBy(img => img.SortOrder ?? int.MaxValue)
+                                .ThenBy(img => img.ImageId)
+                                .Select(img => img.ImageUrl)
+                                .FirstOrDefault();
+
+                            outfitImageCache[outfitSize.OutfitId] = primaryImageUrl;
+                        }
+
+                        detailDto.OutfitImageUrl = primaryImageUrl;
+                    }
+                }
+
+                result.Add(detailDto);
+            }
+
+            return result;
+        }
+
+        private static int? CalculateRentalDays(DateTime? startTime, DateTime? endTime)
+        {
+            if (!startTime.HasValue || !endTime.HasValue) return null;
+
+            var dayDiff = (endTime.Value.Date - startTime.Value.Date).Days;
+            return dayDiff <= 0 ? 1 : dayDiff;
         }
 
         // Keep DB constraint intact: if client does not send rentalPackageId, choose a base package automatically.

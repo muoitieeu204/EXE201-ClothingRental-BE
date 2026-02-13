@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using EXE201.Service.DTOs.ServiceBookingDTOs;
 
 namespace EXE201.Service.DTOs.BookingDTOs
 {
@@ -22,5 +23,6 @@ namespace EXE201.Service.DTOs.BookingDTOs
         public DateTime? BookingDate { get; set; }
 
         public List<BookingDetailDto> Details { get; set; } = new();
+        public List<ServiceBookingResponseDto> ServiceBookings { get; set; } = new();
     }
 }
