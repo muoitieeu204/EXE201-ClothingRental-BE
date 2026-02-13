@@ -25,25 +25,25 @@ namespace EXE201.API.Controllers
             return int.TryParse(userIdStr, out userId);
         }
 
-        // GET /api/Booking/get-all?includeDetails=false
+        // GET /api/Booking/get-all?includeDetails=false&includeServices=false
         [HttpGet("get-all")]
-        public async Task<IActionResult> GetAll([FromQuery] bool includeDetails = false)
+        public async Task<IActionResult> GetAll([FromQuery] bool includeDetails = false, [FromQuery] bool includeServices = false)
         {
             if (!TryGetUserId(out var userId))
                 return Unauthorized(new { message = "Invalid token (missing user id)" });
 
-            var result = await _bookingService.GetMyBookingsAsync(userId, includeDetails);
+            var result = await _bookingService.GetMyBookingsAsync(userId, includeDetails, includeServices);
             return Ok(result);
         }
 
-        // GET /api/Booking/get-by-id/{bookingId}
+        // GET /api/Booking/get-by-id/{bookingId}?includeDetails=true&includeServices=true
         [HttpGet("get-by-id/{bookingId:int}")]
-        public async Task<IActionResult> GetById([FromRoute] int bookingId)
+        public async Task<IActionResult> GetById(int bookingId, [FromQuery] bool includeDetails = true, [FromQuery] bool includeServices = true)
         {
             if (!TryGetUserId(out var userId))
                 return Unauthorized(new { message = "Invalid token (missing user id)" });
 
-            var result = await _bookingService.GetMyBookingByIdAsync(userId, bookingId);
+            var result = await _bookingService.GetMyBookingByIdAsync(userId, bookingId, includeDetails, includeServices);
             if (result == null) return NotFound(new { message = "Booking not found" });
 
             return Ok(result);
@@ -63,6 +63,21 @@ namespace EXE201.API.Controllers
 
             return Ok(created);
         }
+
+        //[HttpPost("create-default")]
+        //public async Task<IActionResult> CreateDefault([FromBody] CreateBookingNoPackageDto dto)
+        //{
+        //    if (!TryGetUserId(out var userId))
+        //        return Unauthorized(new { message = "Invalid token (missing user id)" });
+
+        //    var created = await _bookingService.CreateMyBookingNoPackageAsync(userId, dto);
+        //    if (created == null)
+        //        return BadRequest(new { message = "Create booking failed (invalid data)" });
+
+        //    return Ok(created);
+        //}
+
+
 
         [HttpPatch("complete/{bookingId:int}")]
         public async Task<IActionResult> Complete([FromRoute] int bookingId)

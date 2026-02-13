@@ -13,7 +13,7 @@ public partial class BookingDetail
 
     public int OutfitSizeId { get; set; }
 
-    public int RentalPackageId { get; set; }
+    public int? RentalPackageId { get; set; }
 
     public DateTime? StartTime { get; set; }
 

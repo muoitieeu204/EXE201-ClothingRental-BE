@@ -26,126 +26,147 @@ namespace EXE201.Service.Implementation
         private static bool IsActive(string? s)
             => !string.IsNullOrWhiteSpace(s) && s.Trim().Equals("Active", StringComparison.OrdinalIgnoreCase);
 
-        public async Task<IEnumerable<BookingDto>> GetMyBookingsAsync(int userId, bool includeDetails = false)
+        public async Task<IEnumerable<BookingDto>> GetMyBookingsAsync(int userId, bool includeDetails = false, bool includeServices = false)
         {
             var bookings = await _uow.Bookings.GetBookingsByUserIdAsync(userId);
             var result = _mapper.Map<List<BookingDto>>(bookings);
 
-            if (!includeDetails) return result;
+            if (!includeDetails && !includeServices) return result;
 
-            // Không sửa repo => load details kiểu N+1 cho dễ test
             foreach (var b in result)
             {
-                var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == b.BookingId);
-                b.Details = _mapper.Map<List<BookingDetailDto>>(details);
+                if (includeDetails)
+                {
+                    var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == b.BookingId);
+                    b.Details = _mapper.Map<List<BookingDetailDto>>(details);
+                }
+
+                if (includeServices)
+                {
+                    var services = await _uow.ServiceBookings.FindAsync(s => s.BookingId == b.BookingId);
+                    b.Services = _mapper.Map<List<ServiceBookingDto>>(services);
+
+                    foreach (var s in b.Services)
+                    {
+                        var addons = await _uow.ServiceBookingAddons.FindAsync(a => a.SvcBookingId == s.SvcBookingId);
+                        s.Addons = _mapper.Map<List<ServiceBookingAddonDto>>(addons);
+                    }
+                }
             }
 
             return result;
         }
 
-        public async Task<BookingDto?> GetMyBookingByIdAsync(int userId, int bookingId)
+
+        public async Task<BookingDto?> GetMyBookingByIdAsync(int userId, int bookingId, bool includeDetails = true, bool includeServices = true)
         {
             var booking = await _uow.Bookings.GetByIdAsync(bookingId);
             if (booking == null || booking.UserId != userId) return null;
 
             var dto = _mapper.Map<BookingDto>(booking);
-            var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == bookingId);
-            dto.Details = _mapper.Map<List<BookingDetailDto>>(details);
+
+            if (includeDetails)
+            {
+                var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == bookingId);
+                dto.Details = _mapper.Map<List<BookingDetailDto>>(details);
+            }
+
+            if (includeServices)
+            {
+                var services = await _uow.ServiceBookings.FindAsync(s => s.BookingId == bookingId);
+                dto.Services = _mapper.Map<List<ServiceBookingDto>>(services);
+
+                foreach (var s in dto.Services)
+                {
+                    var addons = await _uow.ServiceBookingAddons.FindAsync(a => a.SvcBookingId == s.SvcBookingId);
+                    s.Addons = _mapper.Map<List<ServiceBookingAddonDto>>(addons);
+                }
+            }
 
             return dto;
         }
 
+
         public async Task<BookingDto?> CreateMyBookingAsync(int userId, CreateBookingDto dto)
         {
             if (dto == null) return null;
-            if (dto.Items == null || dto.Items.Count == 0) return null;
             if (dto.AddressId <= 0) return null;
+            if (dto.Items == null || dto.Items.Count == 0) return null;
 
-            // 1) Validate UserAddress + snapshot AddressText
-            var address = await _uow.UserAddresses.GetByIdAsync(dto.AddressId); // << đổi từ Addresses sang UserAddresses
+            // 1) validate address belongs to user
+            var address = await _uow.UserAddresses.GetByIdAsync(dto.AddressId);
             if (address == null) return null;
             if (address.UserId != userId) return null;
-
-            // bắt buộc phải có AddressLine (vì table cho NULL nhưng đặt hàng mà thiếu thì chịu)
-            if (string.IsNullOrWhiteSpace(address.AddressLine))
-                return null;
+            if (string.IsNullOrWhiteSpace(address.AddressLine)) return null;
 
             var addressSnapshot = BuildAddressSnapshot(address);
 
-            // 2) Pre-validate items + build details in-memory (chưa ghi DB)
+            // 2) build details (KHÔNG tính toán)
             var details = new List<BookingDetail>();
-            decimal totalRental = 0m;
-            decimal totalDeposit = 0m;
-            decimal totalSurcharge = 0m;
+            decimal totalRental = 0m, totalDeposit = 0m, totalSurcharge = 0m;
 
             foreach (var item in dto.Items)
             {
+                if (item.OutfitSizeId <= 0) return null;
+                if (item.StartTime == default) return null;
+
+                // validate size tồn tại (đỡ FK chết)
                 var size = await _uow.OutfitSizes.GetByIdAsync(item.OutfitSizeId);
                 if (size == null) return null;
 
-                var outfit = await _uow.Outfits.GetByIdAsync(size.OutfitId);
-                if (outfit == null) return null;
+                // normalize: 0 hoặc <=0 => null
+                if (item.RentalPackageId.HasValue && item.RentalPackageId.Value <= 0)
+                    item.RentalPackageId = null;
 
-                var pkg = await _uow.RentalPackages.GetByIdAsync(item.RentalPackageId);
-                if (pkg == null) return null;
-
-                var start = item.StartTime;
-                if (start == default) return null;
-
-                var end = start.AddHours(pkg.DurationHours);
-
-                var unitPrice = outfit.BaseRentalPrice * (decimal)pkg.PriceFactor;
-
-                var depositPercent = (decimal)(pkg.DepositPercent ?? 0);
-                if (depositPercent < 0) depositPercent = 0;
-                // nếu data bị nhập 30 thay vì 0.3 thì chặn nhẹ
-                if (depositPercent > 1) depositPercent = depositPercent / 100m;
-
-                var deposit = unitPrice * depositPercent;
-
-                if (pkg.WeekendSurchargePercent.HasValue)
+                // nếu có packageId thì validate tồn tại (đỡ 500 do FK)
+                if (item.RentalPackageId.HasValue)
                 {
-                    var isWeekend = start.DayOfWeek == DayOfWeek.Saturday || start.DayOfWeek == DayOfWeek.Sunday;
-                    if (isWeekend)
-                        totalSurcharge += unitPrice * (decimal)pkg.WeekendSurchargePercent.Value;
+                    var pkg = await _uow.RentalPackages.GetByIdAsync(item.RentalPackageId.Value);
+                    if (pkg == null) return null;
                 }
+
+                if (item.UnitPrice < 0 || item.DepositAmount < 0 || item.Surcharge < 0)
+                    return null;
 
                 details.Add(new BookingDetail
                 {
                     OutfitSizeId = item.OutfitSizeId,
-                    RentalPackageId = item.RentalPackageId,
-                    StartTime = start,
-                    EndTime = end,
-                    UnitPrice = unitPrice,
-                    DepositAmount = deposit,
+                    RentalPackageId = item.RentalPackageId, // null ok
+
+                    StartTime = item.StartTime,
+                    EndTime = item.EndTime,                 // null ok
+
+                    UnitPrice = item.UnitPrice,
+                    DepositAmount = item.DepositAmount,
                     LateFee = 0,
                     DamageFee = 0,
                     Status = "Pending"
                 });
 
-                totalRental += unitPrice;
-                totalDeposit += deposit;
+                totalRental += item.UnitPrice;
+                totalDeposit += item.DepositAmount;
+                totalSurcharge += item.Surcharge;
             }
 
-            // 3) Create booking (set totals trước)
+            // 3) create booking
             var booking = new Booking
             {
                 UserId = userId,
                 AddressId = address.AddressId,
-                AddressText = addressSnapshot, // snapshot từ UserAddress
+                AddressText = addressSnapshot,
+
                 TotalRentalAmount = totalRental,
                 TotalDepositAmount = totalDeposit,
                 TotalSurcharge = totalSurcharge,
+
                 Status = "Pending",
                 PaymentStatus = "Unpaid",
                 BookingDate = DateTime.Now
             };
 
-            // 4) Save booking để lấy BookingId
             await _uow.Bookings.AddAsync(booking);
             await _uow.SaveChangesAsync();
 
-            // 5) Save details
             foreach (var d in details)
             {
                 d.BookingId = booking.BookingId;
@@ -153,9 +174,61 @@ namespace EXE201.Service.Implementation
             }
             await _uow.SaveChangesAsync();
 
-            // 6) Return created booking
-            return await GetMyBookingByIdAsync(userId, booking.BookingId);
+            // 4) optional: create ServiceBooking (CHỈ khi có ServicePkgId)
+            if (dto.Service != null)
+            {
+                // normalize 0 => null
+                if (dto.Service.ServicePkgId.HasValue && dto.Service.ServicePkgId.Value <= 0)
+                    dto.Service.ServicePkgId = null;
+
+                if (dto.Service.ServicePkgId.HasValue)
+                {
+                    // validate service package tồn tại (đỡ 500 FK)
+                    var sp = await _uow.ServicePackages.GetByIdAsync(dto.Service.ServicePkgId.Value);
+                    if (sp == null) return null;
+
+                    // serviceTime bắt buộc khi có service
+                    if (!dto.Service.ServiceTime.HasValue || dto.Service.ServiceTime.Value == default)
+                        return null;
+
+                    var svcBooking = new ServiceBooking
+                    {
+                        UserId = userId,
+                        BookingId = booking.BookingId,
+                        ServicePkgId = dto.Service.ServicePkgId.Value,
+                        ServiceTime = dto.Service.ServiceTime.Value,
+                        TotalPrice = dto.Service.TotalPrice, // client gửi
+                        Status = "Pending"
+                    };
+
+                    await _uow.ServiceBookings.AddAsync(svcBooking);
+                    await _uow.SaveChangesAsync(); // lấy SvcBookingId
+
+                    if (dto.Service.Addons != null && dto.Service.Addons.Count > 0)
+                    {
+                        foreach (var a in dto.Service.Addons)
+                        {
+                            var addon = await _uow.ServiceAddons.GetByIdAsync(a.AddonId);
+                            if (addon == null) return null;
+
+                            await _uow.ServiceBookingAddons.AddAsync(new ServiceBookingAddon
+                            {
+                                SvcBookingId = svcBooking.SvcBookingId,
+                                AddonId = a.AddonId,
+                                PriceAtBooking = a.PriceAtBooking
+                            });
+                        }
+                        await _uow.SaveChangesAsync();
+                    }
+                }
+                //nếu ServicePkgId null => không tạo record service
+            }
+
+            return await GetMyBookingByIdAsync(userId, booking.BookingId, includeDetails: true, includeServices: true);
         }
+
+
+
 
         private static string BuildAddressSnapshot(UserAddress a)
         {
