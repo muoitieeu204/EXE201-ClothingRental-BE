@@ -2,6 +2,7 @@
 using EXE201.Repository.Interfaces;
 using EXE201.Repository.Models;
 using EXE201.Service.DTOs.BookingDTOs;
+using EXE201.Service.DTOs.ServiceBookingDTOs;
 using EXE201.Service.Interface;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -105,7 +106,7 @@ namespace EXE201.Service.Implementation
             var details = new List<BookingDetail>();
             decimal totalRental = 0m, totalDeposit = 0m, totalSurcharge = 0m;
 
-            foreach (var item in dto.Items)
+            foreach (var item in bookingItems)
             {
                 if (item.OutfitSizeId <= 0) return null;
                 if (item.StartTime == default) return null;
@@ -285,6 +286,13 @@ namespace EXE201.Service.Implementation
                 await _uow.BookingDetails.UpdateAsync(d);
             }
 
+            var serviceBookings = await _uow.ServiceBookings.GetServiceBookingsByBookingIdAsync(bookingId);
+            foreach (var sb in serviceBookings)
+            {
+                sb.Status = "Completed";
+                await _uow.ServiceBookings.UpdateAsync(sb);
+            }
+
             await _uow.SaveChangesAsync();
             return true;
         }
@@ -309,6 +317,13 @@ namespace EXE201.Service.Implementation
             {
                 d.Status = "Cancelled";
                 await _uow.BookingDetails.UpdateAsync(d);
+            }
+
+            var serviceBookings = await _uow.ServiceBookings.GetServiceBookingsByBookingIdAsync(bookingId);
+            foreach (var sb in serviceBookings)
+            {
+                sb.Status = "Cancelled";
+                await _uow.ServiceBookings.UpdateAsync(sb);
             }
 
             await _uow.Bookings.UpdateAsync(booking);

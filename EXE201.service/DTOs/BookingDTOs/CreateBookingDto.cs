@@ -10,8 +10,9 @@ namespace EXE201.Service.DTOs.BookingDTOs
         [Range(1, int.MaxValue)]
         public int AddressId { get; set; }
 
-        [Required]
-        [MinLength(1)]
+        [Range(1, int.MaxValue)]
+        public int RentalDays { get; set; } = 1;
+
         public List<CreateBookingItemDto> Items { get; set; } = new();
 
         // optional, không có thì thôi
@@ -24,16 +25,16 @@ namespace EXE201.Service.DTOs.BookingDTOs
         [Range(1, int.MaxValue)]
         public int OutfitSizeId { get; set; }
 
-        // ✅ optional => không truyền thì null; gửi 0 thì backend tự normalize về null
+        // optional => không truyền thì null; gửi 0 thì backend tự normalize về null
         public int? RentalPackageId { get; set; }
 
         [Required]
         public DateTime StartTime { get; set; }
 
-        // ✅ optional: nếu client muốn truyền thì lưu, không truyền thì null
+        // optional: nếu client muốn truyền thì lưu, không truyền thì null
         public DateTime? EndTime { get; set; }
 
-        // ✅ client gửi giá => BE chỉ lưu + cộng tổng
+        // client gửi giá => BE chỉ lưu + cộng tổng
         [Range(0, double.MaxValue)]
         public decimal UnitPrice { get; set; } = 0;
 
@@ -46,7 +47,7 @@ namespace EXE201.Service.DTOs.BookingDTOs
 
     public class CreateBookingServiceDto
     {
-        // ✅ optional => không truyền thì coi như không có service
+        // optional => không truyền thì coi như không có service
         public int? ServicePkgId { get; set; }
 
         public DateTime? ServiceTime { get; set; }
