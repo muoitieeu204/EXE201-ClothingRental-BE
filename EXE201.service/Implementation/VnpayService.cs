@@ -3,12 +3,8 @@ using EXE201.Service.Interface;
 using EXE201.Service.Vnpay;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Globalization;
 
 namespace EXE201.Service.Implementation
 {
@@ -26,18 +22,22 @@ namespace EXE201.Service.Implementation
         public string CreatePaymentURL(OrderInfoDTO order, HttpContext httpContext)
         {
             var vnpaySettings = _configuration.GetSection("VnPaySettings");
+            var amountMinorUnit = checked(order.Amount * 100);
+            var txnRef = string.IsNullOrWhiteSpace(order.PaymentTranId)
+                ? order.OrderId.ToString(CultureInfo.InvariantCulture)
+                : order.PaymentTranId.Trim();
 
             _vnPayLibrary.AddRequestData("vnp_Version", VnPayLibrary.VERSION); 
             _vnPayLibrary.AddRequestData("vnp_Command", "pay");
             _vnPayLibrary.AddRequestData("vnp_TmnCode", vnpaySettings["TmnCode"]);
-            _vnPayLibrary.AddRequestData("vnp_Amount", order.Amount.ToString()); 
+            _vnPayLibrary.AddRequestData("vnp_Amount", amountMinorUnit.ToString(CultureInfo.InvariantCulture)); 
             _vnPayLibrary.AddRequestData("vnp_CurrCode", "VND");
             _vnPayLibrary.AddRequestData("vnp_Locale", "vn");
             _vnPayLibrary.AddRequestData("vnp_OrderType", "other");
 
             _vnPayLibrary.AddRequestData("vnp_OrderInfo", order.OrderDesc);
             _vnPayLibrary.AddRequestData("vnp_ReturnUrl", vnpaySettings["ReturnUrl"]);
-            _vnPayLibrary.AddRequestData("vnp_TxnRef", order.OrderId.ToString());
+            _vnPayLibrary.AddRequestData("vnp_TxnRef", txnRef);
             _vnPayLibrary.AddRequestData("vnp_CreateDate", order.CreatedDate.ToString("yyyyMMddHHmmss"));
             _vnPayLibrary.AddRequestData("vnp_IpAddr", Utils.GetIpAddress(httpContext));
 
