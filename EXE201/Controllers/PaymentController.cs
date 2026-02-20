@@ -143,6 +143,15 @@ namespace EXE201.API.Controllers
 
             if (isValidSignature && IsPaymentSuccess(responseData))
             {
+                if (bookingId > 0)
+                {
+                    var booking = await _unitOfWork.Bookings.GetByIdAsync(bookingId);
+                    if (booking == null || IsBookingStatusInvalidForPayment(booking.Status))
+                    {
+                        return Redirect(BuildFrontendRedirectUrl("/payment-failed", "fail", bookingId, paymentType));
+                    }
+                }
+
                 return Redirect(BuildFrontendRedirectUrl("/payment-success", "success", bookingId, paymentType));
             }
 
@@ -190,6 +199,22 @@ namespace EXE201.API.Controllers
             if (booking == null)
             {
                 return Ok(new { RspCode = "01", Message = "Booking not found" });
+            }
+
+            // Booking đã bị hủy/hoàn thành thì không nhận thanh toán mới nữa.
+            if (IsBookingStatusInvalidForPayment(booking.Status))
+            {
+                if (!IsPaidStatus(payment.Status))
+                {
+                    payment.Status = "Failed";
+                    payment.PaymentMethod = "VNPay";
+                    payment.PaymentTime = DateTime.Now;
+
+                    await _unitOfWork.Payments.UpdateAsync(payment);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
+                return Ok(new { RspCode = "00", Message = "Booking is not eligible for payment." });
             }
 
             if (IsPaymentSuccess(responseData))
@@ -398,6 +423,21 @@ namespace EXE201.API.Controllers
             var booking = await _unitOfWork.Bookings.GetByIdAsync(payment.BookingId);
             if (booking == null)
             {
+                return;
+            }
+
+            // Fallback sync cũng phải chặn booking đã bị hủy/hoàn thành.
+            if (IsBookingStatusInvalidForPayment(booking.Status))
+            {
+                if (!IsPaidStatus(payment.Status))
+                {
+                    payment.Status = "Failed";
+                    payment.PaymentMethod = "VNPay";
+                    payment.PaymentTime = DateTime.Now;
+                    await _unitOfWork.Payments.UpdateAsync(payment);
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
                 return;
             }
 

@@ -27,6 +27,19 @@ namespace EXE201.Service.Implementation
         private static bool IsActive(string? s)
             => !string.IsNullOrWhiteSpace(s) && s.Trim().Equals("Active", StringComparison.OrdinalIgnoreCase);
 
+        private static bool IsPendingStatus(string? status)
+            => string.IsNullOrWhiteSpace(status) || status.Trim().Equals("Pending", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsPaidPaymentStatus(string? paymentStatus)
+            => !string.IsNullOrWhiteSpace(paymentStatus) &&
+               (paymentStatus.Trim().Equals("Paid", StringComparison.OrdinalIgnoreCase) ||
+                paymentStatus.Trim().Equals("DepositPaid", StringComparison.OrdinalIgnoreCase) ||
+                paymentStatus.Trim().Equals("PartiallyPaid", StringComparison.OrdinalIgnoreCase));
+
+        private static bool IsSuccessfulPaymentRecord(string? paymentRecordStatus)
+            => !string.IsNullOrWhiteSpace(paymentRecordStatus) &&
+               paymentRecordStatus.Trim().Equals("Paid", StringComparison.OrdinalIgnoreCase);
+
         public async Task<IEnumerable<BookingDto>> GetMyBookingsAsync(int userId, bool includeDetails = false)
         {
             var bookings = await _uow.Bookings.GetBookingsByUserIdAsync(userId);
@@ -380,9 +393,17 @@ namespace EXE201.Service.Implementation
             var booking = await _uow.Bookings.GetByIdAsync(bookingId);
             if (booking == null || booking.UserId != userId) return false;
 
-            // Nếu đã Completed thì không cho cancel (tuỳ bạn)
-            if (!string.IsNullOrWhiteSpace(booking.Status) &&
-                booking.Status.Trim().Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            // Chỉ cho hủy khi booking còn Pending.
+            if (!IsPendingStatus(booking.Status))
+                return false;
+
+            // Không cho hủy khi booking đã có trạng thái thanh toán.
+            if (IsPaidPaymentStatus(booking.PaymentStatus))
+                return false;
+
+            // Chặn thêm theo bảng Payment để tránh lệch nếu PaymentStatus chưa sync kịp.
+            var payments = await _uow.Payments.GetPaymentsByBookingIdAsync(bookingId);
+            if (payments.Any(p => IsSuccessfulPaymentRecord(p.Status)))
                 return false;
 
             booking.Status = "Cancelled";
