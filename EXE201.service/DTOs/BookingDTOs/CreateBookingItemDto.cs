@@ -12,10 +12,8 @@ namespace EXE201.Service.DTOs.BookingDTOs
         [Required]
         public int OutfitSizeId { get; set; }
 
-        [Required]
-        public int RentalPackageId { get; set; }
+        public int? RentalPackageId { get; set; }
 
-        [Required]
-        public DateTime StartTime { get; set; }
+        public DateTime? StartTime { get; set; }
     }
 }

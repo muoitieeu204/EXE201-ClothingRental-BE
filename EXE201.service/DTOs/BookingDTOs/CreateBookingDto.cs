@@ -1,10 +1,5 @@
-﻿using EXE201.Service.DTOs.ServiceBookingDTOs;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EXE201.Service.DTOs.BookingDTOs
 {
@@ -13,8 +8,11 @@ namespace EXE201.Service.DTOs.BookingDTOs
         [Required]
         public int AddressId { get; set; }
 
-        [Required]
-        [MinLength(1)]
+        [Range(1, int.MaxValue)]
+        public int RentalDays { get; set; } = 1;
+
         public List<CreateBookingItemDto> Items { get; set; } = new();
+
+        public List<int> ServicePackageIds { get; set; } = new();
     }
 }

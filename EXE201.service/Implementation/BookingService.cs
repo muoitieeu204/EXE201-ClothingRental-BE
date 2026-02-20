@@ -2,6 +2,7 @@
 using EXE201.Repository.Interfaces;
 using EXE201.Repository.Models;
 using EXE201.Service.DTOs.BookingDTOs;
+using EXE201.Service.DTOs.ServiceBookingDTOs;
 using EXE201.Service.Interface;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -26,18 +27,33 @@ namespace EXE201.Service.Implementation
         private static bool IsActive(string? s)
             => !string.IsNullOrWhiteSpace(s) && s.Trim().Equals("Active", StringComparison.OrdinalIgnoreCase);
 
+        private static bool IsPendingStatus(string? status)
+            => string.IsNullOrWhiteSpace(status) || status.Trim().Equals("Pending", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsPaidPaymentStatus(string? paymentStatus)
+            => !string.IsNullOrWhiteSpace(paymentStatus) &&
+               (paymentStatus.Trim().Equals("Paid", StringComparison.OrdinalIgnoreCase) ||
+                paymentStatus.Trim().Equals("DepositPaid", StringComparison.OrdinalIgnoreCase) ||
+                paymentStatus.Trim().Equals("PartiallyPaid", StringComparison.OrdinalIgnoreCase));
+
+        private static bool IsSuccessfulPaymentRecord(string? paymentRecordStatus)
+            => !string.IsNullOrWhiteSpace(paymentRecordStatus) &&
+               paymentRecordStatus.Trim().Equals("Paid", StringComparison.OrdinalIgnoreCase);
+
         public async Task<IEnumerable<BookingDto>> GetMyBookingsAsync(int userId, bool includeDetails = false)
         {
             var bookings = await _uow.Bookings.GetBookingsByUserIdAsync(userId);
             var result = _mapper.Map<List<BookingDto>>(bookings);
 
-            if (!includeDetails) return result;
-
-            // Không sửa repo => load details kiểu N+1 cho dễ test
             foreach (var b in result)
             {
-                var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == b.BookingId);
-                b.Details = _mapper.Map<List<BookingDetailDto>>(details);
+                if (includeDetails)
+                {
+                    var details = await _uow.BookingDetails.GetDetailsByBookingIdAsync(b.BookingId);
+                    b.Details = await BuildBookingDetailDtosAsync(details);
+                }
+
+                await AttachComputedTotalsAsync(b);
             }
 
             return result;
@@ -49,8 +65,9 @@ namespace EXE201.Service.Implementation
             if (booking == null || booking.UserId != userId) return null;
 
             var dto = _mapper.Map<BookingDto>(booking);
-            var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == bookingId);
-            dto.Details = _mapper.Map<List<BookingDetailDto>>(details);
+            var details = await _uow.BookingDetails.GetDetailsByBookingIdAsync(bookingId);
+            dto.Details = await BuildBookingDetailDtosAsync(details);
+            await AttachComputedTotalsAsync(dto);
 
             return dto;
         }
@@ -58,8 +75,19 @@ namespace EXE201.Service.Implementation
         public async Task<BookingDto?> CreateMyBookingAsync(int userId, CreateBookingDto dto)
         {
             if (dto == null) return null;
-            if (dto.Items == null || dto.Items.Count == 0) return null;
             if (dto.AddressId <= 0) return null;
+
+            const decimal orderDepositRate = 0.3m;
+            var rentalDays = dto.RentalDays <= 0 ? 1 : dto.RentalDays;
+
+            var bookingItems = dto.Items ?? new List<CreateBookingItemDto>();
+            var rawServicePackageIds = dto.ServicePackageIds ?? new List<int>();
+            if (bookingItems.Count == 0 && rawServicePackageIds.Count == 0) return null;
+            if (rawServicePackageIds.Any(id => id <= 0)) return null;
+
+            var servicePackageIds = rawServicePackageIds
+                .Distinct()
+                .ToList();
 
             // 1) Validate UserAddress + snapshot AddressText
             var address = await _uow.UserAddresses.GetByIdAsync(dto.AddressId); // << đổi từ Addresses sang UserAddresses
@@ -74,11 +102,11 @@ namespace EXE201.Service.Implementation
 
             // 2) Pre-validate items + build details in-memory (chưa ghi DB)
             var details = new List<BookingDetail>();
+            var serviceBookings = new List<ServiceBooking>();
             decimal totalRental = 0m;
-            decimal totalDeposit = 0m;
-            decimal totalSurcharge = 0m;
+            decimal totalService = 0m;
 
-            foreach (var item in dto.Items)
+            foreach (var item in bookingItems)
             {
                 var size = await _uow.OutfitSizes.GetByIdAsync(item.OutfitSizeId);
                 if (size == null) return null;
@@ -86,46 +114,59 @@ namespace EXE201.Service.Implementation
                 var outfit = await _uow.Outfits.GetByIdAsync(size.OutfitId);
                 if (outfit == null) return null;
 
-                var pkg = await _uow.RentalPackages.GetByIdAsync(item.RentalPackageId);
+                var packageId = item.RentalPackageId ?? 0;
+                RentalPackage? pkg = null;
+                if (packageId > 0)
+                {
+                    pkg = await _uow.RentalPackages.GetByIdAsync(packageId);
+                }
+                else
+                {
+                    pkg = await GetFallbackRentalPackageAsync();
+                }
+
                 if (pkg == null) return null;
 
-                var start = item.StartTime;
-                if (start == default) return null;
+                var start = item.StartTime ?? DateTime.Now;
 
-                var end = start.AddHours(pkg.DurationHours);
-
-                var unitPrice = outfit.BaseRentalPrice * (decimal)pkg.PriceFactor;
-
-                var depositPercent = (decimal)(pkg.DepositPercent ?? 0);
-                if (depositPercent < 0) depositPercent = 0;
-                // nếu data bị nhập 30 thay vì 0.3 thì chặn nhẹ
-                if (depositPercent > 1) depositPercent = depositPercent / 100m;
-
-                var deposit = unitPrice * depositPercent;
-
-                if (pkg.WeekendSurchargePercent.HasValue)
-                {
-                    var isWeekend = start.DayOfWeek == DayOfWeek.Saturday || start.DayOfWeek == DayOfWeek.Sunday;
-                    if (isWeekend)
-                        totalSurcharge += unitPrice * (decimal)pkg.WeekendSurchargePercent.Value;
-                }
+                var end = start.AddDays(rentalDays);
+                var unitPrice = outfit.BaseRentalPrice * rentalDays;
 
                 details.Add(new BookingDetail
                 {
                     OutfitSizeId = item.OutfitSizeId,
-                    RentalPackageId = item.RentalPackageId,
+                    RentalPackageId = pkg.PackageId,
                     StartTime = start,
                     EndTime = end,
                     UnitPrice = unitPrice,
-                    DepositAmount = deposit,
+                    DepositAmount = 0m,
                     LateFee = 0,
                     DamageFee = 0,
                     Status = "Pending"
                 });
 
                 totalRental += unitPrice;
-                totalDeposit += deposit;
             }
+
+            foreach (var servicePackageId in servicePackageIds)
+            {
+                var servicePackage = await _uow.ServicePackages.GetByIdAsync(servicePackageId);
+                if (servicePackage == null) return null;
+
+                serviceBookings.Add(new ServiceBooking
+                {
+                    UserId = userId,
+                    ServicePkgId = servicePackageId,
+                    ServiceTime = null,
+                    TotalPrice = servicePackage.BasePrice,
+                    Status = "Pending"
+                });
+
+                totalService += servicePackage.BasePrice;
+            }
+
+            var totalOrderAmount = totalRental + totalService;
+            var totalDeposit = Math.Round(totalOrderAmount * orderDepositRate, 0, MidpointRounding.AwayFromZero);
 
             // 3) Create booking (set totals trước)
             var booking = new Booking
@@ -135,7 +176,7 @@ namespace EXE201.Service.Implementation
                 AddressText = addressSnapshot, // snapshot từ UserAddress
                 TotalRentalAmount = totalRental,
                 TotalDepositAmount = totalDeposit,
-                TotalSurcharge = totalSurcharge,
+                TotalSurcharge = 0m,
                 Status = "Pending",
                 PaymentStatus = "Unpaid",
                 BookingDate = DateTime.Now
@@ -153,8 +194,130 @@ namespace EXE201.Service.Implementation
             }
             await _uow.SaveChangesAsync();
 
-            // 6) Return created booking
+            // 6) Save selected service packages into ServiceBookings
+            foreach (var serviceBooking in serviceBookings)
+            {
+                serviceBooking.BookingId = booking.BookingId;
+                await _uow.ServiceBookings.AddAsync(serviceBooking);
+            }
+
+            if (serviceBookings.Count > 0)
+            {
+                await _uow.SaveChangesAsync();
+            }
+
+            // 7) Return created booking with computed totals
             return await GetMyBookingByIdAsync(userId, booking.BookingId);
+        }
+
+        private async Task AttachComputedTotalsAsync(BookingDto dto)
+        {
+            var serviceBookings = (await _uow.ServiceBookings.GetServiceBookingsByBookingIdAsync(dto.BookingId)).ToList();
+            dto.ServiceBookings = _mapper.Map<List<ServiceBookingResponseDto>>(serviceBookings);
+            var totalService = dto.ServiceBookings.Sum(sb => sb.TotalPrice ?? 0m);
+            dto.TotalServiceAmount = totalService;
+            dto.TotalOrderAmount = (dto.TotalRentalAmount ?? 0m) + (dto.TotalSurcharge ?? 0m) + totalService;
+        }
+
+        private async Task<List<BookingDetailDto>> BuildBookingDetailDtosAsync(IEnumerable<BookingDetail> details)
+        {
+            var result = new List<BookingDetailDto>();
+
+            var rentalPackageCache = new Dictionary<int, RentalPackage?>();
+            var outfitSizeCache = new Dictionary<int, OutfitSize?>();
+            var outfitCache = new Dictionary<int, Outfit?>();
+            var outfitImageCache = new Dictionary<int, string?>();
+
+            foreach (var detail in details.OrderBy(d => d.DetailId))
+            {
+                var detailDto = _mapper.Map<BookingDetailDto>(detail);
+                detailDto.RentalDays = CalculateRentalDays(detail.StartTime, detail.EndTime);
+
+                if (detail.RentalPackageId > 0)
+                {
+                    if (!rentalPackageCache.TryGetValue(detail.RentalPackageId, out var rentalPackage))
+                    {
+                        rentalPackage = await _uow.RentalPackages.GetByIdAsync(detail.RentalPackageId);
+                        rentalPackageCache[detail.RentalPackageId] = rentalPackage;
+                    }
+
+                    detailDto.RentalPackageName = rentalPackage?.Name;
+                }
+
+                if (detail.OutfitSizeId > 0)
+                {
+                    if (!outfitSizeCache.TryGetValue(detail.OutfitSizeId, out var outfitSize))
+                    {
+                        outfitSize = await _uow.OutfitSizes.GetByIdAsync(detail.OutfitSizeId);
+                        outfitSizeCache[detail.OutfitSizeId] = outfitSize;
+                    }
+
+                    if (outfitSize != null)
+                    {
+                        detailDto.OutfitId = outfitSize.OutfitId;
+                        detailDto.OutfitSizeLabel = outfitSize.SizeLabel;
+
+                        if (!outfitCache.TryGetValue(outfitSize.OutfitId, out var outfit))
+                        {
+                            outfit = await _uow.Outfits.GetByIdAsync(outfitSize.OutfitId);
+                            outfitCache[outfitSize.OutfitId] = outfit;
+                        }
+
+                        if (outfit != null)
+                        {
+                            detailDto.OutfitName = outfit.Name;
+                            detailDto.OutfitType = outfit.Type;
+                        }
+
+                        if (!outfitImageCache.TryGetValue(outfitSize.OutfitId, out var primaryImageUrl))
+                        {
+                            var outfitImages = (await _uow.OutfitImages.FindAsync(img => img.OutfitId == outfitSize.OutfitId)).ToList();
+                            primaryImageUrl = outfitImages
+                                .OrderBy(img => img.SortOrder ?? int.MaxValue)
+                                .ThenBy(img => img.ImageId)
+                                .Select(img => img.ImageUrl)
+                                .FirstOrDefault();
+
+                            outfitImageCache[outfitSize.OutfitId] = primaryImageUrl;
+                        }
+
+                        detailDto.OutfitImageUrl = primaryImageUrl;
+                    }
+                }
+
+                result.Add(detailDto);
+            }
+
+            return result;
+        }
+
+        private static int? CalculateRentalDays(DateTime? startTime, DateTime? endTime)
+        {
+            if (!startTime.HasValue || !endTime.HasValue) return null;
+
+            var dayDiff = (endTime.Value.Date - startTime.Value.Date).Days;
+            return dayDiff <= 0 ? 1 : dayDiff;
+        }
+
+        // Keep DB constraint intact: if client does not send rentalPackageId, choose a base package automatically.
+        private async Task<RentalPackage?> GetFallbackRentalPackageAsync()
+        {
+            var packages = (await _uow.RentalPackages.GetAllAsync())
+                .ToList();
+
+            if (packages.Count == 0) return null;
+
+            var basePackage = packages
+                .Where(p => Math.Abs(p.PriceFactor - 1d) < 0.00001d)
+                .OrderBy(p => p.DurationHours)
+                .ThenBy(p => p.PackageId)
+                .FirstOrDefault();
+
+            if (basePackage != null) return basePackage;
+
+            return packages
+                .OrderBy(p => p.PackageId)
+                .FirstOrDefault();
         }
 
         private static string BuildAddressSnapshot(UserAddress a)
@@ -212,6 +375,13 @@ namespace EXE201.Service.Implementation
                 await _uow.BookingDetails.UpdateAsync(d);
             }
 
+            var serviceBookings = await _uow.ServiceBookings.GetServiceBookingsByBookingIdAsync(bookingId);
+            foreach (var sb in serviceBookings)
+            {
+                sb.Status = "Completed";
+                await _uow.ServiceBookings.UpdateAsync(sb);
+            }
+
             await _uow.SaveChangesAsync();
             return true;
         }
@@ -223,9 +393,17 @@ namespace EXE201.Service.Implementation
             var booking = await _uow.Bookings.GetByIdAsync(bookingId);
             if (booking == null || booking.UserId != userId) return false;
 
-            // Nếu đã Completed thì không cho cancel (tuỳ bạn)
-            if (!string.IsNullOrWhiteSpace(booking.Status) &&
-                booking.Status.Trim().Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            // Chỉ cho hủy khi booking còn Pending.
+            if (!IsPendingStatus(booking.Status))
+                return false;
+
+            // Không cho hủy khi booking đã có trạng thái thanh toán.
+            if (IsPaidPaymentStatus(booking.PaymentStatus))
+                return false;
+
+            // Chặn thêm theo bảng Payment để tránh lệch nếu PaymentStatus chưa sync kịp.
+            var payments = await _uow.Payments.GetPaymentsByBookingIdAsync(bookingId);
+            if (payments.Any(p => IsSuccessfulPaymentRecord(p.Status)))
                 return false;
 
             booking.Status = "Cancelled";
@@ -236,6 +414,13 @@ namespace EXE201.Service.Implementation
             {
                 d.Status = "Cancelled";
                 await _uow.BookingDetails.UpdateAsync(d);
+            }
+
+            var serviceBookings = await _uow.ServiceBookings.GetServiceBookingsByBookingIdAsync(bookingId);
+            foreach (var sb in serviceBookings)
+            {
+                sb.Status = "Cancelled";
+                await _uow.ServiceBookings.UpdateAsync(sb);
             }
 
             await _uow.Bookings.UpdateAsync(booking);

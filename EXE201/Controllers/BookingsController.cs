@@ -25,9 +25,9 @@ namespace EXE201.API.Controllers
             return int.TryParse(userIdStr, out userId);
         }
 
-        // GET /api/Booking/get-all?includeDetails=false
+        // GET /api/Booking/get-all?includeDetails=true
         [HttpGet("get-all")]
-        public async Task<IActionResult> GetAll([FromQuery] bool includeDetails = false)
+        public async Task<IActionResult> GetAll([FromQuery] bool includeDetails = true)
         {
             if (!TryGetUserId(out var userId))
                 return Unauthorized(new { message = "Invalid token (missing user id)" });
