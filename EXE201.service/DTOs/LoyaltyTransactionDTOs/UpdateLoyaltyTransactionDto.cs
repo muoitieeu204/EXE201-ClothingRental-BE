@@ -1,0 +1,15 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace EXE201.Service.DTOs.LoyaltyTransactionDTOs
+{
+    public class UpdateLoyaltyTransactionDto
+    {
+        public int? PointsAmount { get; set; }
+        public string? TransactionType { get; set; }
+        public string? Description { get; set; }
+    }
+}

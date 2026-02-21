@@ -104,6 +104,7 @@ namespace EXE201
             builder.Services.AddScoped<VnPayLibrary>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IStudioService, StudioService>();
+            builder.Services.AddScoped<ILoyaltyTransactionService, LoyaltyTransactionService>();
             // Caching
             builder.Services.AddMemoryCache();
 
