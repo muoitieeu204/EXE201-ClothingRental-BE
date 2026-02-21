@@ -15,6 +15,7 @@ using EXE201.Service.DTOs.WishlistDTOs;
 using System.Linq;
 using EXE201.Service.DTOs.ReviewDTOs;
 using EXE201.Service.DTOs.ReviewImageDTOs;
+using EXE201.Service.DTOs.CategoryDTOs;
 
 namespace EXE201.Service.Mapper
 {
@@ -221,7 +222,12 @@ namespace EXE201.Service.Mapper
                 .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => (long)(src.Amount * 100))) 
                 .ForMember(dest => dest.PaymentTranId, opt => opt.MapFrom(src => src.TransactionRef))
                 .ForMember(dest => dest.PayStatus, opt => opt.MapFrom(src => src.Status))
-                .ForMember(dest => dest.BankCode, opt => opt.Ignore()); 
+                .ForMember(dest => dest.BankCode, opt => opt.Ignore());
+
+            // CategoryDTOs -> Model.Category
+            CreateMap<Category, CategoryDto>().ReverseMap();
+            CreateMap<Category, CreateCategoryDto>().ReverseMap();
+            CreateMap<Category, UpdateCategoryDto>().ReverseMap();
 
         }
     }

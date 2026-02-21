@@ -106,7 +106,7 @@ namespace EXE201.Service.Implementation
             var details = new List<BookingDetail>();
             decimal totalRental = 0m, totalDeposit = 0m, totalSurcharge = 0m;
 
-            foreach (var item in bookingItems)
+            foreach (var item in dto.Items)
             {
                 if (item.OutfitSizeId <= 0) return null;
                 if (item.StartTime == default) return null;
@@ -304,40 +304,65 @@ namespace EXE201.Service.Implementation
             var booking = await _uow.Bookings.GetByIdAsync(bookingId);
             if (booking == null || booking.UserId != userId) return false;
 
-            // Chỉ cho hủy khi booking còn Pending.
+            // Chỉ cho hủy khi booking còn Pending
             if (!IsPendingStatus(booking.Status))
                 return false;
 
-            // Không cho hủy khi booking đã có trạng thái thanh toán.
+            // Không cho hủy nếu booking đã “được xem là đã thanh toán” theo snapshot trong Booking
             if (IsPaidPaymentStatus(booking.PaymentStatus))
                 return false;
 
-            // Chặn thêm theo bảng Payment để tránh lệch nếu PaymentStatus chưa sync kịp.
+            // Chặn thêm theo bảng Payment để tránh lệch nếu PaymentStatus chưa sync kịp
             var payments = await _uow.Payments.GetPaymentsByBookingIdAsync(bookingId);
-            if (payments.Any(p => IsSuccessfulPaymentRecord(p.Status)))
+            if (payments != null && payments.Any(p => IsSuccessfulPaymentRecord(p.Status)))
                 return false;
 
+            // Update status booking
             booking.Status = "Cancelled";
 
-            // cancel luôn details
+            // Cancel luôn details
             var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == bookingId);
-            foreach (var d in details)
+            if (details != null)
             {
-                d.Status = "Cancelled";
-                await _uow.BookingDetails.UpdateAsync(d);
+                foreach (var d in details)
+                {
+                    d.Status = "Cancelled";
+                    await _uow.BookingDetails.UpdateAsync(d);
+                }
             }
 
+            // Cancel luôn service bookings
             var serviceBookings = await _uow.ServiceBookings.GetServiceBookingsByBookingIdAsync(bookingId);
-            foreach (var sb in serviceBookings)
+            if (serviceBookings != null)
             {
-                sb.Status = "Cancelled";
-                await _uow.ServiceBookings.UpdateAsync(sb);
+                foreach (var sb in serviceBookings)
+                {
+                    sb.Status = "Cancelled";
+                    await _uow.ServiceBookings.UpdateAsync(sb);
+                }
             }
 
             await _uow.Bookings.UpdateAsync(booking);
             await _uow.SaveChangesAsync();
             return true;
         }
+
+        // =======================
+        // Helpers (đặt trong cùng class Service)
+        // =======================
+
+        private static bool IsPendingStatus(string? status)
+            => string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsPaidPaymentStatus(string? paymentStatus)
+            => string.Equals(paymentStatus, "Paid", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(paymentStatus, "Success", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(paymentStatus, "Completed", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsSuccessfulPaymentRecord(string? paymentStatus)
+            => string.Equals(paymentStatus, "Paid", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(paymentStatus, "Success", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(paymentStatus, "Completed", StringComparison.OrdinalIgnoreCase);
 
     }
 
