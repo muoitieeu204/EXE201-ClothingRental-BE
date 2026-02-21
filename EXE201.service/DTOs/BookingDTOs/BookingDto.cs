@@ -22,7 +22,10 @@ namespace EXE201.Service.DTOs.BookingDTOs
         public string? PaymentStatus { get; set; }
         public DateTime? BookingDate { get; set; }
 
+        // Dropdown 1
         public List<BookingDetailDto> Details { get; set; } = new();
-        public List<ServiceBookingResponseDto> ServiceBookings { get; set; } = new();
+
+        // Dropdown 2
+        public List<ServiceBookingDto> Services { get; set; } = new();
     }
 }
