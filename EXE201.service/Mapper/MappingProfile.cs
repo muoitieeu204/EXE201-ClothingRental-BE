@@ -3,19 +3,20 @@ using EXE201.Repository.Models;
 using EXE201.Service.DTOs;
 using EXE201.Service.DTOs.AddressDTOs;
 using EXE201.Service.DTOs.BookingDTOs;
+using EXE201.Service.DTOs.CategoryDTOs;
 using EXE201.Service.DTOs.OutfitAttributeDTOs;
 using EXE201.Service.DTOs.OutfitDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
 using EXE201.Service.DTOs.OutfitSizeDTOs;
 using EXE201.Service.DTOs.RentalPackageDTOs;
+using EXE201.Service.DTOs.ReviewDTOs;
+using EXE201.Service.DTOs.ReviewImageDTOs;
 using EXE201.Service.DTOs.ServiceBookingDTOs;
 using EXE201.Service.DTOs.ServicePackageDTOs;
+using EXE201.Service.DTOs.StudioDTOs;
 using EXE201.Service.DTOs.UserDTOs;
 using EXE201.Service.DTOs.WishlistDTOs;
 using System.Linq;
-using EXE201.Service.DTOs.ReviewDTOs;
-using EXE201.Service.DTOs.ReviewImageDTOs;
-using EXE201.Service.DTOs.CategoryDTOs;
 
 namespace EXE201.Service.Mapper
 {
@@ -228,6 +229,11 @@ namespace EXE201.Service.Mapper
             CreateMap<Category, CategoryDto>().ReverseMap();
             CreateMap<Category, CreateCategoryDto>().ReverseMap();
             CreateMap<Category, UpdateCategoryDto>().ReverseMap();
+
+            // StudioDTOs -> Model.Studio
+            CreateMap<Studio, StudioDto>().ReverseMap();
+            CreateMap<Studio, CreateStudioDto>().ReverseMap();
+            CreateMap<Studio, UpdateStudioDto>().ReverseMap();
 
         }
     }
