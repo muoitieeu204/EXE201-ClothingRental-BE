@@ -105,6 +105,7 @@ namespace EXE201
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IStudioService, StudioService>();
             builder.Services.AddScoped<ILoyaltyTransactionService, LoyaltyTransactionService>();
+            builder.Services.AddScoped<IServiceAddonService, ServiceAddonService>();
             // Caching
             builder.Services.AddMemoryCache();
 

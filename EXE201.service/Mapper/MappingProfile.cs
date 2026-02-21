@@ -12,6 +12,7 @@ using EXE201.Service.DTOs.OutfitSizeDTOs;
 using EXE201.Service.DTOs.RentalPackageDTOs;
 using EXE201.Service.DTOs.ReviewDTOs;
 using EXE201.Service.DTOs.ReviewImageDTOs;
+using EXE201.Service.DTOs.ServiceAddonDTOs;
 using EXE201.Service.DTOs.ServiceBookingDTOs;
 using EXE201.Service.DTOs.ServicePackageDTOs;
 using EXE201.Service.DTOs.StudioDTOs;
@@ -242,6 +243,10 @@ namespace EXE201.Service.Mapper
             CreateMap<CreateLoyaltyTransactionDto, LoyaltyTransaction>().ReverseMap();
             CreateMap<UpdateLoyaltyTransactionDto, LoyaltyTransaction>().ReverseMap();
 
+            // SerrviceAddonDTOs -> Model.ServiceAddon
+            CreateMap<ServiceAddonDto, ServiceAddon>().ReverseMap();
+            CreateMap<CreateServiceAddonDto, ServiceAddon>().ReverseMap();
+            CreateMap<UpdateServiceAddonDto, ServiceAddon>().ReverseMap();
         }
     }
 }
