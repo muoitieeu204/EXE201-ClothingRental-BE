@@ -304,9 +304,17 @@ namespace EXE201.Service.Implementation
             var booking = await _uow.Bookings.GetByIdAsync(bookingId);
             if (booking == null || booking.UserId != userId) return false;
 
-            // Nếu đã Completed thì không cho cancel (tuỳ bạn)
-            if (!string.IsNullOrWhiteSpace(booking.Status) &&
-                booking.Status.Trim().Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            // Chỉ cho hủy khi booking còn Pending.
+            if (!IsPendingStatus(booking.Status))
+                return false;
+
+            // Không cho hủy khi booking đã có trạng thái thanh toán.
+            if (IsPaidPaymentStatus(booking.PaymentStatus))
+                return false;
+
+            // Chặn thêm theo bảng Payment để tránh lệch nếu PaymentStatus chưa sync kịp.
+            var payments = await _uow.Payments.GetPaymentsByBookingIdAsync(bookingId);
+            if (payments.Any(p => IsSuccessfulPaymentRecord(p.Status)))
                 return false;
 
             booking.Status = "Cancelled";

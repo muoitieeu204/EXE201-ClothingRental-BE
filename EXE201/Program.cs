@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.DependencyInjection;
+using EXE201.Service.Vnpay;
 
 namespace EXE201
 {
@@ -80,9 +81,6 @@ namespace EXE201
 
             builder.Services.AddAuthorization();
 
-            // Database Context
-            // Already registered above with connection string
-
             // Repository Layer
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -102,7 +100,8 @@ namespace EXE201
             builder.Services.AddScoped<IAddressService, AddressService>();
             builder.Services.AddScoped<IServicePackageService, ServicePackageService>();
             builder.Services.AddScoped<IServiceBookingService, ServiceBookingService>();
-
+            builder.Services.AddScoped<IVnpayService, VnpayService>();
+            builder.Services.AddScoped<VnPayLibrary>();
             // Caching
             builder.Services.AddMemoryCache();
 

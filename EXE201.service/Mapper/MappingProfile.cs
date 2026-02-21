@@ -204,6 +204,25 @@ namespace EXE201.Service.Mapper
             CreateMap<Booking, BookingDto>().ReverseMap();
             CreateMap<BookingDetail, BookingDetailDto>().ReverseMap();
 
+            // =========================
+            // VNPAY / ORDER INFO MAPPING
+            // =========================
+
+            // BookingDTO -> OrderInfoDTo
+            CreateMap<Booking, OrderInfoDTO>()
+                .ForMember(dest => dest.OrderId, opt => opt.MapFrom(src => src.BookingId))
+                .ForMember(dest => dest.CreatedDate, opt => opt.MapFrom(src => src.BookingDate))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.OrderDesc, opt => opt.MapFrom(src => $"Transaction for booking:{src.BookingId}"))
+                .ForMember(dest => dest.Amount, opt => opt.Ignore()); 
+
+            // PaymentDTO -> OrderInfoDTO
+            CreateMap<Payment, OrderInfoDTO>()
+                .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => (long)(src.Amount * 100))) 
+                .ForMember(dest => dest.PaymentTranId, opt => opt.MapFrom(src => src.TransactionRef))
+                .ForMember(dest => dest.PayStatus, opt => opt.MapFrom(src => src.Status))
+                .ForMember(dest => dest.BankCode, opt => opt.Ignore()); 
+
         }
     }
 }
