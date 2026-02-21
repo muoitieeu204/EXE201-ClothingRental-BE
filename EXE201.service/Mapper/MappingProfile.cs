@@ -4,6 +4,7 @@ using EXE201.Service.DTOs;
 using EXE201.Service.DTOs.AddressDTOs;
 using EXE201.Service.DTOs.BookingDTOs;
 using EXE201.Service.DTOs.CategoryDTOs;
+using EXE201.Service.DTOs.LoyaltyTransactionDTOs;
 using EXE201.Service.DTOs.OutfitAttributeDTOs;
 using EXE201.Service.DTOs.OutfitDTOs;
 using EXE201.Service.DTOs.OutfitImageDTOs;
@@ -234,6 +235,12 @@ namespace EXE201.Service.Mapper
             CreateMap<Studio, StudioDto>().ReverseMap();
             CreateMap<Studio, CreateStudioDto>().ReverseMap();
             CreateMap<Studio, UpdateStudioDto>().ReverseMap();
+
+            // LoyaltyTransactionDto -> Model.LoyaltyTransaction
+            CreateMap<LoyaltyTransaction, LoyaltyTransactionDto>()
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : null));
+            CreateMap<CreateLoyaltyTransactionDto, LoyaltyTransaction>().ReverseMap();
+            CreateMap<UpdateLoyaltyTransactionDto, LoyaltyTransaction>().ReverseMap();
 
         }
     }

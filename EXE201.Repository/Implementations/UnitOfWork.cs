@@ -31,6 +31,7 @@ namespace EXE201.Repository.Implementations
         private IServiceBookingAddonRepository _serviceBookingAddon;
         private IAddressRepository _address;
         private IStudioRepository _studio;
+        private ILoyaltyTransactionRepository _loyaltyTransaction;
 
 
         public UnitOfWork(ClothingRentalDbContext context)
@@ -70,7 +71,7 @@ namespace EXE201.Repository.Implementations
         public IOutfitImageRepository OutfitImages => _outfitImage ??= new OutfitImageRepository(_context);
 
         public IOutfitAttributeRepository OutfitAttributes => _outfitAttribute ??= new OutfitAttributeRepository(_context);
-        public ILoyaltyTransactionRepository LoyaltyTransactions => throw new NotImplementedException();
+        public ILoyaltyTransactionRepository LoyaltyTransactions => _loyaltyTransaction ??= new LoyaltyTransactionRepository(_context);
 
         public IDepositTransactionRepository DepositTransactions => _depositTransaction ??= new DepositTransactionRepository(_context);
 
