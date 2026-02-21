@@ -102,6 +102,7 @@ namespace EXE201
             builder.Services.AddScoped<IServiceBookingService, ServiceBookingService>();
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<VnPayLibrary>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
             // Caching
             builder.Services.AddMemoryCache();
 
