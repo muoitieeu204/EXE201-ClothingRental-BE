@@ -108,14 +108,16 @@ namespace EXE201
             // Mapper
             builder.Services.AddAutoMapper(typeof(EXE201.Service.Mapper.MappingProfile));
 
-            var app = builder.Build();
+           var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+var enableSwagger = app.Environment.IsDevelopment()
+    || app.Configuration.GetValue<bool>("Swagger:Enabled");
+
+if (enableSwagger)
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
             app.UseHttpsRedirection();
 
