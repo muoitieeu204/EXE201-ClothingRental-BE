@@ -22,6 +22,26 @@ namespace EXE201
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("FrontendCors", policy =>
+                {
+                    var configuredOrigin = builder.Configuration["FrontendSettings:BaseUrl"]?.TrimEnd('/');
+
+                    // Allow configured frontend origin in production; keep common local dev ports for debugging.
+                    var origins = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(configuredOrigin))
+                    {
+                        origins.Add(configuredOrigin);
+                    }
+                    origins.Add("http://localhost:5173");
+                    origins.Add("http://localhost:3000");
+
+                    policy.WithOrigins(origins.Distinct(StringComparer.OrdinalIgnoreCase).ToArray())
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             
@@ -113,13 +133,14 @@ namespace EXE201
 var enableSwagger = app.Environment.IsDevelopment()
     || app.Configuration.GetValue<bool>("Swagger:Enabled");
 
-if (enableSwagger)
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+            if (enableSwagger)
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
 
             app.UseHttpsRedirection();
+            app.UseCors("FrontendCors");
 
             app.UseAuthentication();
             app.UseAuthorization();
