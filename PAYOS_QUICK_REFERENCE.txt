@@ -1,0 +1,119 @@
+=============================================================================
+              PayOS QUICK REFERENCE CARD
+=============================================================================
+
+?? QUICK START
+--------------
+1. dotnet run (in EXE201 folder)
+2. Open Swagger: https://localhost:7XXX/swagger
+3. Login & get JWT token
+4. Create booking
+5. Create PayOS payment link
+
+?? CREATE PAYMENT (cURL)
+------------------------
+curl -X POST "https://localhost:7XXX/api/PayOs/create-payment" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"bookingId": 1, "paymentType": "deposit"}'
+
+?? API ENDPOINTS
+----------------
+POST   /api/PayOs/create-payment    Create payment link (Auth required)
+POST   /api/PayOs/webhook            PayOS webhook (No auth)
+POST   /api/PayOs/cancel/{code}      Cancel payment (Auth required)
+GET    /api/PayOs/info/{code}        Get payment info (Auth required)
+
+?? PAYMENT TYPES
+-----------------
+"deposit" ? 30% of total amount
+"full"    ? Remaining amount or full amount
+
+?? PAYMENT STATUS FLOW
+----------------------
+Pending ? Paid ?
+       ? Failed ?
+
+?? BOOKING PAYMENT STATUS
+-------------------------
+Unpaid ? PartiallyPaid ? DepositPaid ? Paid
+
+?? CONFIGURATION (appsettings.json)
+------------------------------------
+{
+  "PayOs": {
+    "ClientId": "5bf7544d-f048-4b62-a051-19d6d17dc80b",
+    "ApiKey": "9cf28648-b9f6-4975-b382-8c409d6d61d1",
+    "ChecksumKey": "c58d9b24fa53f2517d6eed1e107793036d5030e9fd46c91af33a2143c9e11f7d",
+    "ReturnUrl": "http://localhost:3000/payment-success",
+    "CancelUrl": "http://localhost:3000/payment-failed"
+  }
+}
+
+??? DATABASE QUERIES
+--------------------
+-- Check payment status
+SELECT * FROM Payment WHERE BookingId = 1;
+
+-- Check booking payment status
+SELECT BookingId, PaymentStatus FROM Booking WHERE BookingId = 1;
+
+-- Total paid for booking
+SELECT SUM(Amount) FROM Payment 
+WHERE BookingId = 1 AND Status = 'Paid';
+
+?? COMMON ERRORS
+-----------------
+Error: "Booking not found"
+? Check booking ID and user ownership
+
+Error: "Deposit is already paid"
+? Use paymentType: "full" instead
+
+Error: "This booking is already fully paid"
+? No further payment needed
+
+?? TESTING WORKFLOW
+-------------------
+1. POST /api/Auth/login ? Get JWT token
+2. POST /api/Booking/create ? Get booking ID
+3. POST /api/PayOs/create-payment ? Get checkout URL
+4. Open checkout URL in browser
+5. Complete payment on PayOS page
+6. GET /api/PayOs/info/{orderCode} ? Verify status
+
+?? FILES CREATED/MODIFIED
+--------------------------
+? EXE201.service/Interface/IPayOsService.cs
+? EXE201.service/Implementation/PayOsService.cs
+? EXE201.service/DTOs/PaymentDTOs/PayOsDTOs.cs
+? EXE201/Controllers/PayOsController.cs
+? EXE201/Program.cs (PayOS service registered)
+? EXE201/appsettings.json (PayOS config added)
+
+? REMOVED FILES
+----------------
+? EXE201.service/Vnpay/ (entire folder)
+? EXE201/Controllers/PaymentController.cs (VNPay controller)
+
+?? PACKAGES INSTALLED
+---------------------
+? PayOS (v1.0.6) - Official PayOS .NET SDK
+
+?? SECURITY NOTES
+-----------------
+• All payment endpoints require JWT authentication (except webhook)
+• Webhook signature validation is implemented
+• Never expose API keys in client-side code
+• Use HTTPS in production
+
+?? TIPS
+-------
+• Test with deposit payment first
+• Verify booking payment status after each payment
+• Use ngrok for local webhook testing
+• Check PAYOS_TESTING_GUIDE.txt for detailed instructions
+
+=============================================================================
+            Ready to accept payments! ??
+=============================================================================

@@ -1,0 +1,353 @@
+# PayOS Payment Integration - Testing Guide
+
+## Overview
+This guide will help you test the PayOS payment integration in your EXE201 Clothing Rental application.
+
+## Prerequisites
+1. .NET 8 SDK installed
+2. SQL Server running with ClothingRentalDb database
+3. Your PayOS credentials configured in appsettings.json:
+   - ClientId: `5bf7544d-f048-4b62-a051-19d6d17dc80b`
+   - ApiKey: `9cf28648-b9f6-4975-b382-8c409d6d61d1`
+   - ChecksumKey: `c58d9b24fa53f2517d6eed1e107793036d5030e9fd46c91af33a2143c9e11f7d`
+
+## Setup Instructions
+
+### 1. Start the Application
+```bash
+cd EXE201
+dotnet run
+```
+
+The API will start at `https://localhost:7XXX` or `http://localhost:5XXX`
+
+### 2. Access Swagger UI
+Navigate to: `https://localhost:7XXX/swagger` or `http://localhost:5XXX/swagger`
+
+## Testing Workflow
+
+### Step 1: Authenticate
+1. Register a new user or login with existing credentials using `/api/Auth/login`
+2. Copy the JWT token from the response
+3. Click "Authorize" button in Swagger UI (top right)
+4. Enter: `Bearer {your-token-here}`
+5. Click "Authorize"
+
+### Step 2: Create a Booking
+1. Use the `/api/Booking/create` endpoint to create a test booking
+2. Note the `bookingId` from the response
+3. Ensure the booking has some rental amount
+
+### Step 3: Create PayOS Payment Link
+
+#### Using Swagger UI:
+1. Go to `/api/PayOs/create-payment` endpoint
+2. Click "Try it out"
+3. Enter the request body:
+```json
+{
+  "bookingId": 1,
+  "paymentType": "deposit"
+}
+```
+
+**Payment Types:**
+- `"deposit"` - Pay 30% deposit amount
+- `"full"` - Pay full order amount
+
+4. Click "Execute"
+5. You will receive a response like:
+```json
+{
+  "checkoutUrl": "https://pay.payos.vn/web/...",
+  "orderCode": 1708425123456,
+  "bookingId": 1,
+  "paymentType": "deposit",
+  "amount": 150000
+}
+```
+
+#### Using cURL:
+```bash
+curl -X POST "https://localhost:7XXX/api/PayOs/create-payment" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bookingId": 1,
+    "paymentType": "deposit"
+  }'
+```
+
+#### Using Postman:
+1. Create new POST request to `https://localhost:7XXX/api/PayOs/create-payment`
+2. Headers:
+   - `Authorization`: `Bearer YOUR_JWT_TOKEN`
+   - `Content-Type`: `application/json`
+3. Body (raw JSON):
+```json
+{
+  "bookingId": 1,
+  "paymentType": "deposit"
+}
+```
+
+### Step 4: Complete Payment
+
+1. Copy the `checkoutUrl` from the response
+2. Open it in a web browser
+3. You'll be redirected to PayOS payment page
+4. Use PayOS test credentials to complete payment
+
+**PayOS Test Environment:**
+- The payment page will show payment details
+- Use test bank account or test QR code
+- After payment, you'll be redirected to returnUrl
+
+### Step 5: Verify Payment Status
+
+#### Check Payment Info:
+```bash
+GET /api/PayOs/info/{orderCode}
+```
+
+Response:
+```json
+{
+  "orderCode": 1708425123456,
+  "amount": 150000,
+  "amountPaid": 150000,
+  "amountRemaining": 0,
+  "status": "PAID",
+  "transactions": [...]
+}
+```
+
+#### Check Booking Payment Status:
+Query your booking to see updated `paymentStatus`:
+- `"Unpaid"` - No payment made
+- `"PartiallyPaid"` - Some payment received
+- `"DepositPaid"` - Deposit fully paid
+- `"Paid"` - Fully paid
+
+## API Endpoints
+
+### 1. Create Payment Link
+**POST** `/api/PayOs/create-payment`
+
+**Authorization:** Required (Bearer Token)
+
+**Request Body:**
+```json
+{
+  "bookingId": 1,
+  "paymentType": "deposit"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "checkoutUrl": "string",
+  "orderCode": 0,
+  "bookingId": 0,
+  "paymentType": "string",
+  "amount": 0
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Invalid booking ID or payment type
+- `401 Unauthorized` - Missing or invalid token
+- `500 Internal Server Error` - PayOS API error
+
+### 2. Webhook Handler
+**POST** `/api/PayOs/webhook`
+
+**Authorization:** Not required (called by PayOS)
+
+This endpoint is automatically called by PayOS when payment status changes.
+
+**Webhook Data Format:**
+```json
+{
+  "code": "00",
+  "desc": "success",
+  "success": true,
+  "data": {
+    "orderCode": 1708425123456,
+    "amount": 150000,
+    "description": "Thanh toan tien coc cho don hang #1",
+    "accountNumber": "123456",
+    "reference": "FT123456",
+    "transactionDateTime": "2024-02-20 10:30:00"
+  },
+  "signature": "..."
+}
+```
+
+### 3. Cancel Payment Link
+**POST** `/api/PayOs/cancel/{orderCode}`
+
+**Authorization:** Required (Bearer Token)
+
+Cancels an existing payment link.
+
+### 4. Get Payment Info
+**GET** `/api/PayOs/info/{orderCode}`
+
+**Authorization:** Required (Bearer Token)
+
+Retrieves detailed payment information.
+
+## Database Changes
+
+### Payment Table
+The `Payment` table tracks all payment transactions:
+
+```sql
+SELECT * FROM Payment WHERE BookingId = 1;
+```
+
+Columns:
+- `PaymentId` - Auto-increment ID
+- `BookingId` - Reference to booking
+- `Amount` - Payment amount
+- `PaymentMethod` - "PayOS"
+- `TransactionRef` - Format: `{bookingId}-{paymentType}-{orderCode}`
+- `PaymentTime` - Timestamp when paid
+- `Status` - "Pending", "Paid", or "Failed"
+
+### Booking Table
+The `Booking` table's `PaymentStatus` column is automatically updated:
+
+```sql
+SELECT BookingId, PaymentStatus, TotalRentalAmount, TotalDepositAmount 
+FROM Booking WHERE BookingId = 1;
+```
+
+## Testing Scenarios
+
+### Scenario 1: Deposit Payment
+1. Create booking with TotalRentalAmount = 500,000 VND
+2. Create payment with `paymentType: "deposit"`
+3. Expected deposit = 150,000 VND (30%)
+4. Complete payment
+5. Verify `PaymentStatus` = "DepositPaid"
+
+### Scenario 2: Full Payment
+1. Use existing booking with deposit already paid
+2. Create payment with `paymentType: "full"`
+3. Expected amount = 500,000 - 150,000 = 350,000 VND
+4. Complete payment
+5. Verify `PaymentStatus` = "Paid"
+
+### Scenario 3: Payment Cancellation
+1. Create payment link
+2. Call cancel endpoint with orderCode
+3. Verify payment link is no longer valid
+
+### Scenario 4: Failed Payment
+1. Create payment link
+2. Don't complete payment (close browser)
+3. Payment status remains "Pending"
+4. After timeout, PayOS marks as failed
+
+### Scenario 5: Webhook Testing
+To test webhooks locally, you'll need to:
+1. Use ngrok or similar tool to expose your local API
+2. Configure PayOS webhook URL in your PayOS dashboard
+3. Make a payment
+4. Verify webhook is received and processed
+
+## Troubleshooting
+
+### Common Errors
+
+**Error: "Booking not found"**
+- Solution: Ensure the booking ID exists and belongs to the authenticated user
+
+**Error: "Cannot create payment for this booking status"**
+- Solution: Booking must not be "Cancelled" or "Completed"
+
+**Error: "Deposit is already paid"**
+- Solution: Use `paymentType: "full"` instead
+
+**Error: "This booking is already fully paid"**
+- Solution: Payment is complete, no further payment needed
+
+**Error: "PayOS API error"**
+- Solution: Check your PayOS credentials in appsettings.json
+
+### Checking Logs
+Monitor the console output for detailed error messages and PayOS API responses.
+
+### Database Verification
+```sql
+-- Check all payments for a booking
+SELECT * FROM Payment WHERE BookingId = 1 ORDER BY PaymentId DESC;
+
+-- Check booking payment status
+SELECT BookingId, PaymentStatus, TotalRentalAmount, TotalDepositAmount
+FROM Booking WHERE BookingId = 1;
+
+-- Calculate total paid amount
+SELECT BookingId, SUM(Amount) as TotalPaid
+FROM Payment
+WHERE BookingId = 1 AND Status = 'Paid'
+GROUP BY BookingId;
+```
+
+## Configuration
+
+### appsettings.json
+```json
+{
+  "PayOs": {
+    "ClientId": "your-client-id",
+    "ApiKey": "your-api-key",
+    "ChecksumKey": "your-checksum-key",
+    "ReturnUrl": "http://localhost:3000/payment-success",
+    "CancelUrl": "http://localhost:3000/payment-failed"
+  }
+}
+```
+
+**Note:** Update ReturnUrl and CancelUrl to match your frontend application.
+
+## Production Deployment
+
+### Before Going Live:
+1. Update PayOS credentials with production keys
+2. Configure production ReturnUrl and CancelUrl
+3. Set up SSL/HTTPS for webhook endpoint
+4. Register webhook URL in PayOS dashboard
+5. Test end-to-end payment flow
+6. Monitor payment logs
+
+### Security Best Practices:
+1. Never expose API keys in client-side code
+2. Always validate webhook signatures
+3. Use HTTPS for all payment-related endpoints
+4. Implement rate limiting on payment endpoints
+5. Log all payment attempts for audit
+
+## Support
+
+For PayOS-specific issues:
+- Documentation: https://payos.vn/docs/
+- Dashboard: https://my.payos.vn/
+
+For application issues:
+- Check application logs
+- Verify database state
+- Review Swagger documentation
+
+## Summary
+
+? PayOS has been successfully integrated
+? VNPay code has been completely removed
+? All payment endpoints are secured with JWT
+? Payment status is automatically tracked
+? Booking payment status is automatically updated
+
+You can now accept payments through PayOS for your clothing rental bookings!
