@@ -32,20 +32,20 @@ namespace EXE201.Service.Implementation
             var bookings = await _uow.Bookings.GetBookingsByUserIdAsync(userId);
             var result = _mapper.Map<List<BookingDto>>(bookings);
 
-            if (!includeDetails && !includeServices) return result;
-
             foreach (var b in result)
             {
                 if (includeDetails)
                 {
                     var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == b.BookingId);
                     b.Details = _mapper.Map<List<BookingDetailDto>>(details);
+                    await EnrichBookingDetailDtosAsync(b.Details, details);
                 }
 
                 if (includeServices)
                 {
                     var services = await _uow.ServiceBookings.FindAsync(s => s.BookingId == b.BookingId);
                     b.Services = _mapper.Map<List<ServiceBookingDto>>(services);
+                    await EnrichServiceBookingDtosAsync(b.Services, services);
 
                     foreach (var s in b.Services)
                     {
@@ -53,6 +53,8 @@ namespace EXE201.Service.Implementation
                         s.Addons = _mapper.Map<List<ServiceBookingAddonDto>>(addons);
                     }
                 }
+
+                await PopulateBookingComputedTotalsAsync(b);
             }
 
             return result;
@@ -70,12 +72,14 @@ namespace EXE201.Service.Implementation
             {
                 var details = await _uow.BookingDetails.FindAsync(d => d.BookingId == bookingId);
                 dto.Details = _mapper.Map<List<BookingDetailDto>>(details);
+                await EnrichBookingDetailDtosAsync(dto.Details, details);
             }
 
             if (includeServices)
             {
                 var services = await _uow.ServiceBookings.FindAsync(s => s.BookingId == bookingId);
                 dto.Services = _mapper.Map<List<ServiceBookingDto>>(services);
+                await EnrichServiceBookingDtosAsync(dto.Services, services);
 
                 foreach (var s in dto.Services)
                 {
@@ -83,6 +87,8 @@ namespace EXE201.Service.Implementation
                     s.Addons = _mapper.Map<List<ServiceBookingAddonDto>>(addons);
                 }
             }
+
+            await PopulateBookingComputedTotalsAsync(dto);
 
             return dto;
         }
@@ -262,6 +268,216 @@ namespace EXE201.Service.Implementation
             if (string.IsNullOrWhiteSpace(tail)) return headParts[0];
 
             return $"{headParts[0]}, {tail}";
+        }
+
+        private async Task EnrichBookingDetailDtosAsync(
+            List<BookingDetailDto>? detailDtos,
+            IEnumerable<BookingDetail>? detailEntities)
+        {
+            if (detailDtos == null || detailDtos.Count == 0 || detailEntities == null)
+                return;
+
+            var entityList = detailEntities.ToList();
+            if (entityList.Count == 0)
+                return;
+
+            var entityByDetailId = entityList.ToDictionary(d => d.DetailId, d => d);
+
+            var outfitSizeIds = entityList
+                .Select(d => d.OutfitSizeId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var outfitSizes = outfitSizeIds.Count == 0
+                ? new List<OutfitSize>()
+                : (await _uow.OutfitSizes.FindAsync(s => outfitSizeIds.Contains(s.SizeId))).ToList();
+
+            var outfitSizeById = outfitSizes.ToDictionary(s => s.SizeId, s => s);
+
+            var outfitIds = outfitSizes
+                .Select(s => s.OutfitId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var outfits = outfitIds.Count == 0
+                ? new List<Outfit>()
+                : (await _uow.Outfits.FindAsync(o => outfitIds.Contains(o.OutfitId))).ToList();
+
+            var outfitById = outfits.ToDictionary(o => o.OutfitId, o => o);
+
+            var outfitImages = outfitIds.Count == 0
+                ? new List<OutfitImage>()
+                : (await _uow.OutfitImages.FindAsync(img => outfitIds.Contains(img.OutfitId))).ToList();
+
+            var primaryImageByOutfitId = outfitImages
+                .GroupBy(img => img.OutfitId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(img => img.SortOrder ?? int.MaxValue)
+                          .ThenBy(img => img.ImageId)
+                          .Select(img => img.ImageUrl)
+                          .FirstOrDefault());
+
+            var rentalPackageIds = entityList
+                .Where(d => d.RentalPackageId.HasValue && d.RentalPackageId.Value > 0)
+                .Select(d => d.RentalPackageId!.Value)
+                .Distinct()
+                .ToList();
+
+            var rentalPackages = rentalPackageIds.Count == 0
+                ? new List<RentalPackage>()
+                : (await _uow.RentalPackages.FindAsync(p => rentalPackageIds.Contains(p.PackageId))).ToList();
+
+            var rentalPackageById = rentalPackages.ToDictionary(p => p.PackageId, p => p);
+
+            foreach (var dto in detailDtos)
+            {
+                if (!entityByDetailId.TryGetValue(dto.DetailId, out var entity))
+                    continue;
+
+                if (entity.RentalPackageId.HasValue && entity.RentalPackageId.Value > 0)
+                {
+                    dto.RentalPackageId = entity.RentalPackageId.Value;
+                    if (rentalPackageById.TryGetValue(entity.RentalPackageId.Value, out var rentalPackage))
+                    {
+                        dto.RentalPackageName = rentalPackage.Name;
+                    }
+                }
+
+                if (outfitSizeById.TryGetValue(entity.OutfitSizeId, out var outfitSize))
+                {
+                    dto.OutfitId = outfitSize.OutfitId;
+                    dto.OutfitSizeLabel = string.IsNullOrWhiteSpace(outfitSize.SizeLabel)
+                        ? dto.OutfitSizeLabel
+                        : outfitSize.SizeLabel;
+
+                    if (outfitById.TryGetValue(outfitSize.OutfitId, out var outfit))
+                    {
+                        dto.OutfitName = string.IsNullOrWhiteSpace(outfit.Name)
+                            ? dto.OutfitName
+                            : outfit.Name;
+                        dto.OutfitType = string.IsNullOrWhiteSpace(outfit.Type)
+                            ? dto.OutfitType
+                            : outfit.Type;
+                    }
+
+                    if (primaryImageByOutfitId.TryGetValue(outfitSize.OutfitId, out var imageUrl)
+                        && !string.IsNullOrWhiteSpace(imageUrl))
+                    {
+                        dto.OutfitImageUrl = imageUrl;
+                    }
+                }
+
+                var rentalDays = CalculateRentalDays(entity.StartTime, entity.EndTime);
+                if (rentalDays.HasValue && rentalDays.Value > 0)
+                {
+                    dto.RentalDays = rentalDays.Value;
+                }
+            }
+        }
+
+        private async Task EnrichServiceBookingDtosAsync(
+            List<ServiceBookingDto>? serviceDtos,
+            IEnumerable<ServiceBooking>? serviceEntities)
+        {
+            if (serviceDtos == null || serviceDtos.Count == 0 || serviceEntities == null)
+                return;
+
+            var entityList = serviceEntities.ToList();
+            if (entityList.Count == 0)
+                return;
+
+            var entityBySvcBookingId = entityList.ToDictionary(s => s.SvcBookingId, s => s);
+
+            var servicePkgIds = entityList
+                .Select(s => s.ServicePkgId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var servicePackages = servicePkgIds.Count == 0
+                ? new List<ServicePackage>()
+                : (await _uow.ServicePackages.FindAsync(p => servicePkgIds.Contains(p.ServicePkgId))).ToList();
+
+            var servicePackageById = servicePackages.ToDictionary(p => p.ServicePkgId, p => p);
+
+            var studioIds = servicePackages
+                .Select(p => p.StudioId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var studios = studioIds.Count == 0
+                ? new List<Studio>()
+                : (await _uow.Studios.FindAsync(s => studioIds.Contains(s.StudioId))).ToList();
+
+            var studioById = studios.ToDictionary(s => s.StudioId, s => s);
+
+            foreach (var dto in serviceDtos)
+            {
+                if (!entityBySvcBookingId.TryGetValue(dto.SvcBookingId, out var entity))
+                    continue;
+
+                if (entity.ServicePkgId <= 0)
+                    continue;
+
+                if (servicePackageById.TryGetValue(entity.ServicePkgId, out var servicePackage))
+                {
+                    dto.ServicePackageName = string.IsNullOrWhiteSpace(servicePackage.Name)
+                        ? dto.ServicePackageName
+                        : servicePackage.Name;
+
+                    if (studioById.TryGetValue(servicePackage.StudioId, out var studio))
+                    {
+                        dto.StudioName = string.IsNullOrWhiteSpace(studio.Name)
+                            ? dto.StudioName
+                            : studio.Name;
+                    }
+                }
+            }
+        }
+
+        private static int? CalculateRentalDays(DateTime? startTime, DateTime? endTime)
+        {
+            if (!startTime.HasValue || !endTime.HasValue)
+                return null;
+
+            var diff = endTime.Value - startTime.Value;
+            if (diff <= TimeSpan.Zero)
+                return null;
+
+            var days = (int)Math.Ceiling(diff.TotalDays);
+            return days > 0 ? days : null;
+        }
+
+        private async Task PopulateBookingComputedTotalsAsync(BookingDto? bookingDto)
+        {
+            if (bookingDto == null || bookingDto.BookingId <= 0)
+                return;
+
+            decimal totalService;
+            if (bookingDto.Services != null && bookingDto.Services.Count > 0)
+            {
+                totalService = bookingDto.Services.Sum(s => s.TotalPrice ?? 0m);
+            }
+            else
+            {
+                var serviceBookings = await _uow.ServiceBookings.FindAsync(s => s.BookingId == bookingDto.BookingId);
+                totalService = serviceBookings.Sum(s => s.TotalPrice ?? 0m);
+            }
+
+            var totalRental = bookingDto.TotalRentalAmount ?? 0m;
+            var totalSurcharge = bookingDto.TotalSurcharge ?? 0m;
+
+            bookingDto.TotalServiceAmount = RoundCurrency(totalService);
+            bookingDto.TotalOrderAmount = RoundCurrency(totalRental + totalSurcharge + (bookingDto.TotalServiceAmount ?? 0m));
+        }
+
+        private static decimal RoundCurrency(decimal amount)
+        {
+            return Math.Round(amount, 0, MidpointRounding.AwayFromZero);
         }
 
 

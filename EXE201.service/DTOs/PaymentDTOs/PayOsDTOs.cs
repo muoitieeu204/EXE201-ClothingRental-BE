@@ -63,6 +63,17 @@ namespace EXE201.Service.DTOs.PaymentDTOs
      public string? CanceledAt { get; set; }
     }
 
+    public class PayOsLocalSyncResponse
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public long OrderCode { get; set; }
+        public int? BookingId { get; set; }
+        public string? PayOsStatus { get; set; }
+        public string? LocalPaymentStatus { get; set; }
+        public string? BookingPaymentStatus { get; set; }
+    }
+
     public class PayOsTransaction
     {
    public string? Reference { get; set; }

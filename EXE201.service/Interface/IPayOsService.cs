@@ -8,5 +8,6 @@ namespace EXE201.Service.Interface
     Task<PayOsWebhookResponse> HandleWebhook(PayOsWebhookData webhookData);
         Task<bool> CancelPaymentLink(long orderCode);
         Task<PayOsPaymentInfo> GetPaymentInfo(long orderCode);
+        Task<PayOsLocalSyncResponse> SyncPaymentStatusByOrderCode(long orderCode);
     }
 }

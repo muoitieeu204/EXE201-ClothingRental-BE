@@ -114,5 +114,30 @@ namespace EXE201.API.Controllers
                 return StatusCode(500, new { message = $"Error getting payment info: {ex.Message}" });
             }
         }
+
+        /// <summary>
+        /// Sync local payment + booking payment status using PayOS order code.
+        /// Useful for local testing when webhook cannot reach localhost.
+        /// </summary>
+        [Authorize]
+        [HttpPost("sync/{orderCode}")]
+        public async Task<IActionResult> SyncPaymentStatusByOrderCode(long orderCode)
+        {
+            try
+            {
+                var result = await _payOsService.SyncPaymentStatusByOrderCode(orderCode);
+
+                if (result.Success)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error syncing payment status: {ex.Message}" });
+            }
+        }
     }
 }

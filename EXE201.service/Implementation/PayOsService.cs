@@ -68,8 +68,16 @@ namespace EXE201.Service.Implementation
            ? $"Coc DH#{request.BookingId}"
                       : $"Thanh toan DH#{request.BookingId}";
 
-                var returnUrl = _configuration["PayOs:ReturnUrl"] ?? "http://localhost:3000/payment-success";
-                var cancelUrl = _configuration["PayOs:CancelUrl"] ?? "http://localhost:3000/payment-failed";
+                var returnUrl = BuildRedirectUrl(
+                    _configuration["PayOs:ReturnUrl"] ?? "http://localhost:3000/payment-success",
+                    request.BookingId,
+                    paymentType,
+                    "success");
+                var cancelUrl = BuildRedirectUrl(
+                    _configuration["PayOs:CancelUrl"] ?? "http://localhost:3000/payment-failed",
+                    request.BookingId,
+                    paymentType,
+                    "fail");
 
                 var items = new List<Net.payOS.Types.ItemData>
               {
@@ -276,7 +284,133 @@ namespace EXE201.Service.Implementation
             }
         }
 
+        public async Task<PayOsLocalSyncResponse> SyncPaymentStatusByOrderCode(long orderCode)
+        {
+            try
+            {
+                var paymentInfo = await _payOS.getPaymentLinkInformation(orderCode);
+                var localPayment = await _unitOfWork.Payments.FirstOrDefaultAsync(
+                    p => p.TransactionRef != null && p.TransactionRef.EndsWith($"-{orderCode}"));
+
+                if (localPayment == null)
+                {
+                    return new PayOsLocalSyncResponse
+                    {
+                        Success = false,
+                        Message = "Local payment record not found for this orderCode.",
+                        OrderCode = orderCode,
+                        PayOsStatus = paymentInfo.status
+                    };
+                }
+
+                var booking = await _unitOfWork.Bookings.GetByIdAsync(localPayment.BookingId);
+                if (booking == null)
+                {
+                    return new PayOsLocalSyncResponse
+                    {
+                        Success = false,
+                        Message = "Booking not found for local payment record.",
+                        OrderCode = orderCode,
+                        BookingId = localPayment.BookingId,
+                        PayOsStatus = paymentInfo.status,
+                        LocalPaymentStatus = localPayment.Status
+                    };
+                }
+
+                var normalizedPayOsStatus = NormalizePayOsStatus(paymentInfo.status);
+                var payOsMarkedPaid =
+                    normalizedPayOsStatus == "paid" ||
+                    (paymentInfo.amount > 0 && paymentInfo.amountPaid >= paymentInfo.amount);
+                var payOsMarkedFailed =
+                    normalizedPayOsStatus is "cancelled" or "canceled" or "expired";
+
+                if (payOsMarkedPaid)
+                {
+                    if (!IsPaidStatus(localPayment.Status))
+                    {
+                        localPayment.Status = "Paid";
+                        localPayment.PaymentTime = DateTime.Now;
+                        await _unitOfWork.Payments.UpdateAsync(localPayment);
+                    }
+                }
+                else if (payOsMarkedFailed)
+                {
+                    if (!IsPaidStatus(localPayment.Status) &&
+                        !string.Equals(localPayment.Status, "Failed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        localPayment.Status = "Failed";
+                        localPayment.PaymentTime = DateTime.Now;
+                        await _unitOfWork.Payments.UpdateAsync(localPayment);
+                    }
+                }
+                else if (!IsPaidStatus(localPayment.Status) &&
+                         !string.Equals(localPayment.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                {
+                    localPayment.Status = "Pending";
+                    await _unitOfWork.Payments.UpdateAsync(localPayment);
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+
+                await UpdateBookingPaymentStatusAsync(booking);
+                await _unitOfWork.SaveChangesAsync();
+
+                return new PayOsLocalSyncResponse
+                {
+                    Success = true,
+                    Message = "Local payment status synced from PayOS.",
+                    OrderCode = orderCode,
+                    BookingId = booking.BookingId,
+                    PayOsStatus = paymentInfo.status,
+                    LocalPaymentStatus = localPayment.Status,
+                    BookingPaymentStatus = booking.PaymentStatus
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PayOsLocalSyncResponse
+                {
+                    Success = false,
+                    Message = $"Error syncing payment status: {ex.Message}",
+                    OrderCode = orderCode
+                };
+            }
+        }
+
         // Helper methods
+        private static string BuildRedirectUrl(string baseUrl, int bookingId, string paymentType, string status)
+        {
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                return baseUrl;
+            }
+
+            var queryParams = new List<string>();
+
+            void AddQueryParam(string key, string? value)
+            {
+                if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
+                {
+                    return;
+                }
+
+                queryParams.Add(
+                    $"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(value)}");
+            }
+
+            AddQueryParam("bookingId", bookingId.ToString(CultureInfo.InvariantCulture));
+            AddQueryParam("paymentType", paymentType);
+            AddQueryParam("status", status);
+
+            if (queryParams.Count == 0)
+            {
+                return baseUrl;
+            }
+
+            var separator = baseUrl.Contains('?') ? "&" : "?";
+            return $"{baseUrl}{separator}{string.Join("&", queryParams)}";
+        }
+
         private static string? NormalizePaymentType(string? paymentType)
         {
             if (string.IsNullOrWhiteSpace(paymentType))
@@ -291,6 +425,11 @@ namespace EXE201.Service.Implementation
         private static bool IsPaidStatus(string? status)
         {
             return string.Equals(status, "Paid", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizePayOsStatus(string? status)
+        {
+            return (status ?? string.Empty).Trim().ToLowerInvariant();
         }
 
         private static bool IsBookingStatusInvalidForPayment(string? status)
@@ -311,21 +450,46 @@ namespace EXE201.Service.Implementation
 
             try
             {
-                // Expected format: "Thanh toan ... cho don hang #{bookingId}"
-                var parts = description.Split('#');
-                if (parts.Length < 2)
-                {
-                    return false;
-                }
-
-                var bookingIdStr = new string(parts[1].TakeWhile(char.IsDigit).ToArray());
-                if (!int.TryParse(bookingIdStr, out bookingId))
-                {
-                    return false;
-                }
-
                 paymentType = description.Contains("coc", StringComparison.OrdinalIgnoreCase) ? "deposit" : "full";
-                return true;
+
+                // PayOS may sanitize special chars in description, so support both:
+                // "Coc DH#20" and "Coc DH20"
+                var source = description ?? string.Empty;
+                var dhIndex = source.IndexOf("DH", StringComparison.OrdinalIgnoreCase);
+                if (dhIndex >= 0)
+                {
+                    var start = dhIndex + 2;
+
+                    while (start < source.Length &&
+                           (source[start] == '#' || source[start] == ' ' || source[start] == ':' || source[start] == '-'))
+                    {
+                        start++;
+                    }
+
+                    var bookingIdStr = new string(
+                        source
+                            .Skip(start)
+                            .TakeWhile(char.IsDigit)
+                            .ToArray());
+
+                    if (int.TryParse(bookingIdStr, out bookingId))
+                    {
+                        return true;
+                    }
+                }
+
+                // Fallback to legacy format with '#'
+                var parts = source.Split('#');
+                if (parts.Length >= 2)
+                {
+                    var bookingIdStr = new string(parts[1].TakeWhile(char.IsDigit).ToArray());
+                    if (int.TryParse(bookingIdStr, out bookingId))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
             catch
             {
