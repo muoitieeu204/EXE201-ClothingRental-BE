@@ -65,6 +65,27 @@ namespace EXE201.API.Controllers
                     return Ok(response);
                 }
 
+                // PayOS may send webhook probe/test payloads that do not map to a real booking/payment.
+                // We should acknowledge these with 200 so PayOS accepts the webhook URL configuration.
+                var likelyWebhookProbe =
+                    webhookData?.Data == null ||
+                    (webhookData.Data.OrderCode <= 0 &&
+                     string.IsNullOrWhiteSpace(webhookData.Data.Description) &&
+                     string.IsNullOrWhiteSpace(webhookData.Data.Reference)) ||
+                    string.Equals(response.Message, "Invalid webhook data", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(response.Message, "Cannot extract booking information", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(response.Message, "Payment not found", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(response.Message, "Booking not found", StringComparison.OrdinalIgnoreCase);
+
+                if (likelyWebhookProbe)
+                {
+                    return Ok(new PayOsWebhookResponse
+                    {
+                        Success = true,
+                        Message = $"Webhook acknowledged ({response.Message ?? "probe"})"
+                    });
+                }
+
                 return BadRequest(response);
             }
             catch (Exception ex)

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Net.payOS;
 using Net.payOS.Types;
 using System.Globalization;
+using System.Text;
 
 namespace EXE201.Service.Implementation
 {
@@ -20,9 +21,9 @@ namespace EXE201.Service.Implementation
             _configuration = configuration;
             _unitOfWork = unitOfWork;
 
-            var clientId = _configuration["PayOs:ClientId"] ?? throw new ArgumentNullException("PayOs:ClientId");
-            var apiKey = _configuration["PayOs:ApiKey"] ?? throw new ArgumentNullException("PayOs:ApiKey");
-            var checksumKey = _configuration["PayOs:ChecksumKey"] ?? throw new ArgumentNullException("PayOs:ChecksumKey");
+            var clientId = NormalizePayOsKey(_configuration["PayOs:ClientId"], "PayOs:ClientId");
+            var apiKey = NormalizePayOsKey(_configuration["PayOs:ApiKey"], "PayOs:ApiKey");
+            var checksumKey = NormalizePayOsKey(_configuration["PayOs:ChecksumKey"], "PayOs:ChecksumKey");
 
             _payOS = new PayOS(clientId, apiKey, checksumKey);
         }
@@ -380,6 +381,7 @@ namespace EXE201.Service.Implementation
         // Helper methods
         private static string BuildRedirectUrl(string baseUrl, int bookingId, string paymentType, string status)
         {
+            baseUrl = NormalizeConfigText(baseUrl);
             if (string.IsNullOrWhiteSpace(baseUrl))
             {
                 return baseUrl;
@@ -441,6 +443,56 @@ namespace EXE201.Service.Implementation
         private static decimal RoundCurrency(decimal amount)
         {
             return Math.Round(amount, 0, MidpointRounding.AwayFromZero);
+        }
+
+        private static string NormalizePayOsKey(string? rawValue, string configKey)
+        {
+            if (rawValue == null)
+            {
+                throw new ArgumentNullException(configKey);
+            }
+
+            // Azure App Settings pastes can accidentally carry hidden chars / line breaks.
+            var normalized = NormalizeConfigText(rawValue, removeAllWhitespace: true);
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                throw new ArgumentException($"Configuration '{configKey}' is empty after normalization.");
+            }
+
+            return normalized;
+        }
+
+        private static string NormalizeConfigText(string? value, bool removeAllWhitespace = false)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return value ?? string.Empty;
+            }
+
+            var sb = new StringBuilder(value.Length);
+            foreach (var c in value)
+            {
+                var hiddenChar =
+                    c == '\u200B' || // zero-width space
+                    c == '\u200C' || // zero-width non-joiner
+                    c == '\u200D' || // zero-width joiner
+                    c == '\u2060' || // word joiner
+                    c == '\uFEFF';   // BOM / zero-width no-break space
+
+                if (hiddenChar)
+                {
+                    continue;
+                }
+
+                if (removeAllWhitespace && char.IsWhiteSpace(c))
+                {
+                    continue;
+                }
+
+                sb.Append(c);
+            }
+
+            return removeAllWhitespace ? sb.ToString() : sb.ToString().Trim();
         }
 
         private static bool TryExtractBookingInfo(string description, out int bookingId, out string paymentType)
