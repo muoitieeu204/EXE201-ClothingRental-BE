@@ -12,5 +12,7 @@ namespace EXE201.Repository.Interfaces
         Task<IEnumerable<Booking>> GetBookingsByUserIdAsync(int userId);
 
         Task<List<Booking>> GetBookingsByAddressIdAsync(int addressId);
+
+        Task<int> CountByUserIdAsync(int userId);
     }
 }

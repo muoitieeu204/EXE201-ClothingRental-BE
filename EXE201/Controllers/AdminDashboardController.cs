@@ -7,7 +7,7 @@ namespace EXE201.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Policy = "SuperAdminOnly")]
+    [Authorize(Policy = "AdminOnly")]
     public class AdminDashboardController : ControllerBase
     {
         private readonly IAdminDashboardService _adminDashboardService;

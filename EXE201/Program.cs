@@ -106,10 +106,15 @@ namespace EXE201
                 // Policy for SuperAdmin only (RoleId = 1)
                 options.AddPolicy("SuperAdminOnly", policy =>
                     policy.Requirements.Add(new RoleIdRequirement(1)));
+                
+                // Policy for Admin (RoleId = 1 or 2)
+                options.AddPolicy("AdminOnly", policy =>
+                    policy.Requirements.Add(new MultiRoleIdRequirement(1, 2)));
             });
 
-            // Register custom authorization handler
+            // Register custom authorization handlers
             builder.Services.AddSingleton<IAuthorizationHandler, RoleIdRequirementHandler>();
+            builder.Services.AddSingleton<IAuthorizationHandler, MultiRoleIdRequirementHandler>();
 
             // Repository Layer
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
