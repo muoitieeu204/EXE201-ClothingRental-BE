@@ -124,6 +124,7 @@ namespace EXE201
             builder.Services.AddScoped<ILoyaltyTransactionService, LoyaltyTransactionService>();
             builder.Services.AddScoped<IServiceAddonService, ServiceAddonService>();
             builder.Services.AddScoped<IPayOsService, PayOsService>();
+            builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
             // Caching
             builder.Services.AddMemoryCache();
 
