@@ -51,7 +51,7 @@ namespace EXE201.API.Controllers
         }
 
         // POST: api/Category/create
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto)
         {
@@ -68,7 +68,7 @@ namespace EXE201.API.Controllers
         }
 
         // PUT: api/Category/update/5
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPut("update/{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateCategoryDto dto)
         {
@@ -92,7 +92,7 @@ namespace EXE201.API.Controllers
         }
 
         // DELETE: api/Category/delete/5
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("delete/{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {

@@ -3,8 +3,10 @@ using EXE201.Repository.Interfaces;
 using EXE201.Repository.Models;
 using EXE201.Service.Implementation;
 using EXE201.Service.Interface;
+using EXE201.API.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
@@ -98,7 +100,16 @@ namespace EXE201
                     };
                 });
 
-            builder.Services.AddAuthorization();
+            // Configure Authorization with custom policies
+            builder.Services.AddAuthorization(options =>
+            {
+                // Policy for SuperAdmin only (RoleId = 1)
+                options.AddPolicy("SuperAdminOnly", policy =>
+                    policy.Requirements.Add(new RoleIdRequirement(1)));
+            });
+
+            // Register custom authorization handler
+            builder.Services.AddSingleton<IAuthorizationHandler, RoleIdRequirementHandler>();
 
             // Repository Layer
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

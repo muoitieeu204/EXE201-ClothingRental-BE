@@ -41,7 +41,7 @@ namespace EXE201.API.Controllers
 
         // POST: api/Studio/create
         // Create: service tự set IsActive = 1
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] CreateStudioDto dto)
         {
@@ -59,7 +59,7 @@ namespace EXE201.API.Controllers
 
         // PUT: api/Studio/update/5
         // Update: chỉ update khi studio đang IsActive = 1
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPut("update/{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateStudioDto dto)
         {
@@ -84,7 +84,7 @@ namespace EXE201.API.Controllers
 
         // DELETE: api/Studio/delete/5
         // Soft delete: IsActive = 0
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpDelete("delete/{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
@@ -98,7 +98,7 @@ namespace EXE201.API.Controllers
 
         // PUT: api/Studio/activate/5
         // Reactivate: IsActive = 1
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         [HttpPut("activate/{id:int}")]
         public async Task<IActionResult> Activate([FromRoute] int id)
         {
