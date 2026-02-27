@@ -229,6 +229,38 @@ namespace EXE201.Service.Mapper
             CreateMap<ServiceAddonDto, ServiceAddon>().ReverseMap();
             CreateMap<CreateServiceAddonDto, ServiceAddon>().ReverseMap();
             CreateMap<UpdateServiceAddonDto, ServiceAddon>().ReverseMap();
+
+            // Booking -> BookingAdminV2Dto
+            CreateMap<Booking, BookingAdminV2Dto>()
+                .ForMember(d => d.UserFullName, opt => opt.MapFrom(s => s.User != null ? s.User.FullName : ""))
+                .ForMember(d => d.UserEmail, opt => opt.MapFrom(s => s.User != null ? s.User.Email : ""))
+                .ForMember(d => d.Details, opt => opt.MapFrom(s => s.BookingDetails))
+                // Booking entity không có TotalServiceAmount / TotalOrderAmount => tính ở Service sau
+                .ForMember(d => d.TotalServiceAmount, opt => opt.Ignore())
+                .ForMember(d => d.TotalOrderAmount, opt => opt.Ignore())
+                .ForMember(d => d.Services, opt => opt.Ignore());
+
+            // BookingDetail -> BookingDetailAdminV2Dto
+            CreateMap<BookingDetail, BookingDetailAdminV2Dto>()
+                .ForMember(d => d.RentalPackageName, opt => opt.MapFrom(s => s.RentalPackage != null ? s.RentalPackage.Name : null))
+                // RentalDays: tính từ StartTime/EndTime (nếu thiếu)
+                .ForMember(d => d.RentalDays, opt => opt.MapFrom(s =>
+                    (s.StartTime.HasValue && s.EndTime.HasValue)
+                        ? Math.Max(1, (int)Math.Ceiling((s.EndTime.Value - s.StartTime.Value).TotalDays))
+                        : (int?)null
+                ))
+                .ForMember(d => d.OutfitId, opt => opt.MapFrom(s => (int?)null))
+                .ForMember(d => d.OutfitName, opt => opt.MapFrom(s => (string?)null))
+                .ForMember(d => d.OutfitType, opt => opt.MapFrom(s => (string?)null))
+                .ForMember(d => d.OutfitSizeLabel, opt => opt.MapFrom(s => (string?)null))
+                .ForMember(d => d.OutfitImageUrl, opt => opt.MapFrom(s => (string?)null));
+
+            CreateMap<ServiceBooking, BookingServiceAdminV2Dto>()
+                .ForMember(d => d.ServiceId, opt => opt.MapFrom(s => s.ServicePkgId))
+                .ForMember(d => d.Total, opt => opt.MapFrom(s => s.TotalPrice))
+                .ForMember(d => d.Quantity, opt => opt.MapFrom(s => 1))
+                .ForMember(d => d.ServiceName, opt => opt.Ignore())
+                .ForMember(d => d.Price, opt => opt.Ignore());
         }
     }
 }

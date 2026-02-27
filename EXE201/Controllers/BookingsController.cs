@@ -36,6 +36,19 @@ namespace EXE201.API.Controllers
             return Ok(result);
         }
 
+        // GET /api/Booking/get-all-v2?includeDetails=true&includeServices=false
+        [HttpGet("get-all-v2")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllV2([FromQuery] bool includeDetails = true, [FromQuery] bool includeServices = false)
+        {
+            if (!TryGetUserId(out var userId))
+                return Unauthorized(new { message = "Invalid token (missing user id)" });
+
+            // userId ở đây chỉ để validate token; Admin mới được gọi endpoint này
+            var result = await _bookingService.GetAllV2Async(includeDetails, includeServices);
+            return Ok(result);
+        }
+
         // GET /api/Booking/get-by-id/{bookingId}?includeDetails=true&includeServices=true
         [HttpGet("get-by-id/{bookingId:int}")]
         public async Task<IActionResult> GetById(int bookingId, [FromQuery] bool includeDetails = true, [FromQuery] bool includeServices = true)
@@ -45,6 +58,24 @@ namespace EXE201.API.Controllers
 
             var result = await _bookingService.GetMyBookingByIdAsync(userId, bookingId, includeDetails, includeServices);
             if (result == null) return NotFound(new { message = "Booking not found" });
+
+            return Ok(result);
+        }
+
+        // GET /api/Booking/get-by-id-v2/6?includeDetails=true&includeServices=true
+        [HttpGet("get-by-id-v2/{bookingId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetByIdV2(
+            [FromRoute] int bookingId,
+            [FromQuery] bool includeDetails = true,
+            [FromQuery] bool includeServices = true
+        )
+        {
+            if (!TryGetUserId(out var userId))
+                return Unauthorized(new { message = "Invalid token (missing user id)" });
+
+            var result = await _bookingService.GetByIdV2Async(bookingId, includeDetails, includeServices);
+            if (result == null) return NotFound(new { message = "Không tìm thấy đơn thuê." });
 
             return Ok(result);
         }
