@@ -22,6 +22,7 @@ namespace EXE201.Service.DTOs.OutfitDTOs
     public int TotalImages { get; set; }
      public int TotalSizes { get; set; }
     public int AvailableSizes { get; set; }
+        public int TotalStock { get; set; }
         public string? PrimaryImageUrl { get; set; }
         public double? AverageRating { get; set; }
         public int TotalReviews { get; set; }

@@ -51,7 +51,7 @@ namespace EXE201.API.Controllers
 
         // POST: api/ServiceAddon/create
         [HttpPost("create")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Create([FromBody] CreateServiceAddonDto dto)
         {
             if (dto == null) return BadRequest(new { message = "Thiếu dữ liệu body" });
@@ -74,7 +74,7 @@ namespace EXE201.API.Controllers
 
         // PUT: api/ServiceAddon/update/5
         [HttpPut("update/{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateServiceAddonDto dto)
         {
             if (id <= 0) return BadRequest(new { message = "Id không hợp lệ" });
@@ -100,7 +100,7 @@ namespace EXE201.API.Controllers
 
         // DELETE: api/ServiceAddon/delete/5
         [HttpDelete("delete/{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SuperAdminOnly")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
             if (id <= 0) return BadRequest(new { message = "Id không hợp lệ" });

@@ -55,7 +55,7 @@ namespace EXE201.API.Controllers
 
         // DELETE: /api/users/5  (soft delete)
         [HttpDelete("{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> SoftDelete(int id)
         {
             if (id <= 0) return BadRequest(new { message = "Id must be greater than 0" });

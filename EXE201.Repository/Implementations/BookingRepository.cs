@@ -31,5 +31,12 @@ namespace EXE201.Repository.Implementations
                 .Where(b => b.AddressId == addressId)
                 .ToListAsync();
         }
+
+        public async Task<int> CountByUserIdAsync(int userId)
+        {
+            return await _context.Bookings
+                .Where(b => b.UserId == userId)
+                .CountAsync();
+        }
     }
 }

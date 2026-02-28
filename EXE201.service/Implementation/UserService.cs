@@ -42,7 +42,17 @@ namespace EXE201.Service.Implementation
         public async Task<IEnumerable<ListUserDto>> GetAllAsync()
         {
             var users = await _uow.Users.GetAllUserAsync();
-            return Mapper.Map<IEnumerable<ListUserDto>>(users);
+            var userDtos = new List<ListUserDto>();
+
+            foreach (var user in users)
+            {
+                var dto = Mapper.Map<ListUserDto>(user);
+                // Count total bookings for this user
+                dto.TotalOrders = await _uow.Bookings.CountByUserIdAsync(user.UserId);
+                userDtos.Add(dto);
+            }
+
+            return userDtos;
         }
 
         public async Task<UserDetailDto?> GetByIdAsync(int id)
@@ -50,7 +60,11 @@ namespace EXE201.Service.Implementation
             var user = await _uow.Users.GetByIdAsync(id);
             if (user == null) return null;
 
-            return Mapper.Map<UserDetailDto>(user);
+            var dto = Mapper.Map<UserDetailDto>(user);
+            // Count total bookings for this user
+            dto.TotalOrders = await _uow.Bookings.CountByUserIdAsync(user.UserId);
+
+            return dto;
         }
 
         public async Task<bool> SoftDeleteAsync(int id)

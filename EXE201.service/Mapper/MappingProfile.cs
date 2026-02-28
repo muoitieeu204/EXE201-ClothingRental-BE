@@ -111,6 +111,8 @@ namespace EXE201.Service.Mapper
                 .ForMember(dest => dest.TotalSizes, opt => opt.MapFrom(src => src.OutfitSizes != null ? src.OutfitSizes.Count : 0))
                 .ForMember(dest => dest.AvailableSizes, opt => opt.MapFrom(src =>
                     src.OutfitSizes != null ? src.OutfitSizes.Count(s => s.StockQuantity > 0) : 0))
+                .ForMember(dest => dest.TotalStock, opt => opt.MapFrom(src =>
+                    src.OutfitSizes != null ? src.OutfitSizes.Sum(s => s.StockQuantity) : 0))
                 .ForMember(dest => dest.PrimaryImageUrl, opt => opt.MapFrom(src =>
                     src.OutfitImages != null && src.OutfitImages.Any()
                         ? src.OutfitImages.OrderBy(img => img.SortOrder).FirstOrDefault()!.ImageUrl
