@@ -22,7 +22,7 @@ namespace EXE201.API.Controllers
         /// Generate a video using outfit images as references
         /// </summary>
         [HttpPost("generate")]
-        //[Authorize]
+        [Authorize]
         public async Task<IActionResult> GenerateVideo([FromBody] VideoGenerationRequest request)
         {
             if (!ModelState.IsValid)
@@ -57,7 +57,7 @@ namespace EXE201.API.Controllers
         /// Check the status of a video generation operation
         /// </summary>
         [HttpGet("status/{operationName}")]
-        //[Authorize]
+        [Authorize]
         public async Task<IActionResult> GetVideoStatus(string operationName)
         {
             if (string.IsNullOrWhiteSpace(operationName))
@@ -87,7 +87,7 @@ namespace EXE201.API.Controllers
         /// Download the generated video
         /// </summary>
         [HttpGet("download")]
-        //[Authorize]
+        [Authorize]
         public async Task<IActionResult> DownloadVideo([FromQuery] string videoUri)
         {
             if (string.IsNullOrWhiteSpace(videoUri))

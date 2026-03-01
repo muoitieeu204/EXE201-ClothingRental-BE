@@ -4,6 +4,7 @@ using EXE201.Service.Interface;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http.Json;
 using System.Text;
@@ -47,7 +48,7 @@ namespace EXE201.Service.Implementation
                 };
             }
 
-            // Get outfit images
+            // Get outfit images from database (these are URLs that work for frontend)
             var outfitImages = await _unitOfWork.OutfitImages.GetImagesByOutfitIdAsync(request.OutfitId);
 
             if (!outfitImages.Any())
@@ -74,43 +75,56 @@ namespace EXE201.Service.Implementation
                 };
             }
 
-            // Download and convert first image to base64
+            // Convert URL to base64 for Gemini API
+            // Frontend uses URL directly, but Gemini API needs base64
             string? imageBase64 = null;
+            string mimeType = "image/jpeg"; // default
             try
             {
                 var firstImage = outfitImages.OrderBy(i => i.SortOrder ?? int.MaxValue).First();
-                imageBase64 = await DownloadImageAsBase64Async(firstImage.ImageUrl);
+                // Download and convert: URL → Bytes → Base64 + detect MIME type
+                var imageData = await DownloadImageWithMimeTypeAsync(firstImage.ImageUrl);
+                imageBase64 = imageData.Base64String;
+                mimeType = imageData.MimeType;
             }
             catch (Exception ex)
             {
                 return new VideoGenerationResponse
                 {
                     Status = "failed",
-                    Message = $"Failed to download image: {ex.Message}"
+                    Message = $"Failed to download and convert image: {ex.Message}"
                 };
             }
 
             // Create Gemini API request - Veo model format
+            // Gemini requires base64 + MIME type, not URLs
             var geminiRequest = new
             {
-                contents = new[]
-                {
-                    new
-                    {
-                        parts = new object[]
-                        {
-                            new { text = request.Prompt },
-                            new
-                            {
-                                inline_data = new
-                                {
-                                    mime_type = "image/jpeg",
-                                    data = imageBase64
-                                }
-                            }
-                        }
-                    }
-                }
+                instances = new[]
+               {
+                   new
+                   {
+                       prompt = request.Prompt,
+                       referenceImages = new[]
+                       {
+                           new
+                           {
+                               referenceType= "asset",
+                               image = new
+                               {
+                                   mimeType = mimeType, // e.g., "image/jpeg"
+                                   bytesBase64Encoded = imageBase64 // converted base64 string
+                               }
+                           }
+                       }
+                   }
+               },
+               parameters = new
+               {
+                   sampleCount = 1,
+                   aspectRatio = "16:9",
+                   resolution = "720p"
+               }
             };
 
             // Send request to Gemini API
@@ -180,13 +194,20 @@ namespace EXE201.Service.Implementation
                     };
                 }
 
-                var videoUri = operationResponse.Response?.GenerateVideoResponse?.GeneratedSamples?[0]?.Video?.Uri;
+                // 1. Get the raw URI from the response
+                var rawUri = operationResponse.Response?.GenerateVideoResponse?.GeneratedSamples?[0]?.Video?.Uri;
+
+                // 2. FIX: Append the API key so the URL is authorized for viewing/downloading
+                // Without this, the frontend or your DownloadVideoAsync method will hit a 403 error.
+                var authenticatedVideoUri = string.IsNullOrEmpty(rawUri)
+                    ? null
+                    : $"{rawUri}&key={_geminiApiKey}";
 
                 return new VideoStatusResponse
                 {
                     IsComplete = true,
                     Status = "completed",
-                    VideoUri = videoUri
+                    VideoUri = authenticatedVideoUri
                 };
             }
 
@@ -206,10 +227,74 @@ namespace EXE201.Service.Implementation
             return await response.Content.ReadAsByteArrayAsync();
         }
 
-        private async Task<string> DownloadImageAsBase64Async(string imageUrl)
+        /// <summary>
+        /// Downloads image from URL and converts to base64 with MIME type detection.
+        /// This is needed because Gemini API doesn't accept direct URLs like frontend does.
+        /// </summary>
+        private async Task<ImageData> DownloadImageWithMimeTypeAsync(string imageUrl)
         {
-            var imageBytes = await _httpClient.GetByteArrayAsync(imageUrl);
-            return Convert.ToBase64String(imageBytes);
+            // Handle data URI format (data:image/jpeg;base64,...)
+            // Some systems store base64 directly in database
+            if (imageUrl.StartsWith("data:"))
+            {
+                var parts = imageUrl.Split(',');
+                if (parts.Length == 2)
+                {
+                    var mimeTypePart = parts[0].Split(':')[1].Split(';')[0];
+                    ValidateMimeType(mimeTypePart);
+                    return new ImageData(parts[1], mimeTypePart);
+                }
+                throw new InvalidOperationException("Invalid data URI format");
+            }
+
+            // Download from URL (your current database format)
+            var response = await _httpClient.GetAsync(imageUrl);
+            response.EnsureSuccessStatusCode();
+
+            var imageBytes = await response.Content.ReadAsByteArrayAsync();
+            var base64String = Convert.ToBase64String(imageBytes);
+            
+            // Detect MIME type from HTTP response or file extension
+            var mimeType = response.Content.Headers.ContentType?.MediaType 
+                           ?? DetectMimeTypeFromUrl(imageUrl);
+            
+            ValidateMimeType(mimeType);
+            
+            return new ImageData(base64String, mimeType);
         }
+
+        /// <summary>
+        /// Detects MIME type from file extension
+        /// </summary>
+        private string DetectMimeTypeFromUrl(string imageUrl)
+        {
+            var extension = Path.GetExtension(imageUrl).ToLowerInvariant();
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/jpeg" // default fallback
+            };
+        }
+
+        /// <summary>
+        /// Validates that MIME type is supported by Gemini API
+        /// </summary>
+        private void ValidateMimeType(string mimeType)
+        {
+            var supportedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+            if (!supportedTypes.Contains(mimeType.ToLowerInvariant()))
+            {
+                throw new InvalidOperationException(
+                    $"Unsupported image type: {mimeType}. Supported types: {string.Join(", ", supportedTypes)}");
+            }
+        }
+
+        /// <summary>
+        /// Data container for base64 string and its MIME type
+        /// </summary>
+        private record ImageData(string Base64String, string MimeType);
     }
 }
