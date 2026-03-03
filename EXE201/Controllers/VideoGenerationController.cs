@@ -56,7 +56,7 @@ namespace EXE201.API.Controllers
         /// <summary>
         /// Check the status of a video generation operation
         /// </summary>
-        [HttpGet("status/{operationName}")]
+        [HttpGet("status/{*operationName}")]
         [Authorize]
         public async Task<IActionResult> GetVideoStatus(string operationName)
         {
