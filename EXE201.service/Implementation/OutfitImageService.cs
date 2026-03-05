@@ -20,8 +20,8 @@ namespace EXE201.Service.Implementation
 
         public async Task<bool> AddAsync(CreateOutfitImageDto entity)
         {
-            var exist = await IsInOutfit(entity.OutfitId);
-            if (exist) return false;
+            var exist = await _unitOfWork.Outfits.ExistAsync(o => o.OutfitId == entity.OutfitId);
+            if (!exist) return false;
 
             var outfitImage = _mapper.Map<OutfitImage>(entity);
 
