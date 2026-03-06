@@ -9,7 +9,6 @@ namespace EXE201.Service.DTOs.OutfitImageDTOs
      public int OutfitId { get; set; }
 
         [Required(ErrorMessage = "ImageUrl is required")]
-     [Url(ErrorMessage = "ImageUrl must be a valid URL")]
         public string ImageUrl { get; set; } = null!;
 
         [MaxLength(50, ErrorMessage = "ImageType cannot exceed 50 characters")]
