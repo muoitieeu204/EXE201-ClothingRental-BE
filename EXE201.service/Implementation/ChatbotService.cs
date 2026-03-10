@@ -174,14 +174,22 @@ Chỉ trả về JSON hợp lệ, không thêm văn bản nào khác.
                     o.Type != null && o.Type.ToLowerInvariant().Contains(type));
             }
 
-            // Lọc theo giá thuê
+            // Lọc theo giá thuê — chỉ lấy sản phẩm trong khoảng ±30% và sắp xếp theo độ gần giá nhất
             if (!string.IsNullOrWhiteSpace(criteria.PriceRange))
             {
                 var priceStr = criteria.PriceRange
                     .Replace("k", "000").Replace("K", "000")
                     .Replace("triệu", "000000").Replace("tr", "000000");
-                if (decimal.TryParse(priceStr.Replace(",", "").Replace(".", ""), out var maxPrice) && maxPrice > 0)
-                    query = query.Where(o => o.BaseRentalPrice <= maxPrice);
+                if (decimal.TryParse(priceStr.Replace(",", "").Replace(".", ""), out var targetPrice) && targetPrice > 0)
+                {
+                    var minPrice = targetPrice * 0.7m;
+                    var maxPrice = targetPrice * 1.3m;
+                    var priceFiltered = query.Where(o => o.BaseRentalPrice >= minPrice && o.BaseRentalPrice <= maxPrice).ToList();
+                    // Nếu không có sản phẩm trong khoảng ±30%, mở rộng tìm 5 sản phẩm gần nhất
+                    if (priceFiltered.Count == 0)
+                        priceFiltered = query.OrderBy(o => Math.Abs(o.BaseRentalPrice - targetPrice)).Take(5).ToList();
+                    return priceFiltered.OrderBy(o => Math.Abs(o.BaseRentalPrice - targetPrice)).Take(5).ToList();
+                }
             }
 
             return query.Take(5).ToList();
