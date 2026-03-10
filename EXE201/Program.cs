@@ -141,6 +141,7 @@ namespace EXE201
             builder.Services.AddScoped<IServiceAddonService, ServiceAddonService>();
             builder.Services.AddScoped<IPayOsService, PayOsService>();
             builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+            builder.Services.AddScoped<IChatbotService, ChatbotService>();
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<IVideoGenerationService, VideoGenerationService>();
             // Caching
