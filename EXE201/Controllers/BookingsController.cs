@@ -38,7 +38,6 @@ namespace EXE201.API.Controllers
 
         // GET /api/Booking/get-all-v2?includeDetails=true&includeServices=false
         [HttpGet("get-all-v2")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllV2([FromQuery] bool includeDetails = true, [FromQuery] bool includeServices = false)
         {
             if (!TryGetUserId(out var userId))
@@ -64,7 +63,6 @@ namespace EXE201.API.Controllers
 
         // GET /api/Booking/get-by-id-v2/6?includeDetails=true&includeServices=true
         [HttpGet("get-by-id-v2/{bookingId}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetByIdV2(
             [FromRoute] int bookingId,
             [FromQuery] bool includeDetails = true,
